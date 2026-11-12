@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FacultyConnect — Thapar Institute</title>
+<meta name="description" content="FacultyConnect — a live campus hub for finding faculty, their courses, assignments, question banks, and getting help, at Thapar Institute of Engineering & Technology.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="orb orb1" aria-hidden="true"></div>
+<div class="orb orb2" aria-hidden="true"></div>
+<div class="orb orb3" aria-hidden="true"></div>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="login-screen">
+  <div id="login-visual">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="lv-blob lv-blob1" aria-hidden="true"></div>
+    <div class="lv-blob lv-blob2" aria-hidden="true"></div>
+    <div class="login-mark"><span class="lm-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="7" r="2.3" fill="#fff"/><circle cx="18" cy="7" r="2.3" fill="#fff"/><circle cx="12" cy="17.5" r="2.3" fill="#fff"/><path d="M7.8 8.7L10.7 15.6M16.2 8.7L13.3 15.6M8.3 7H15.7" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>facultyconnect · thapar institute</div>
+    <div class="login-hero">
+      <h1>Find your <em>faculty</em>, fast.</h1>
+      <p>One place for every department at Thapar — courses, assignments, question banks, and a direct, live line to the people teaching them.</p>
+    </div>
+    <div class="campus-strip">
+      <div><b id="stat-fac">4</b>faculty live</div>
+      <div><b>7</b>departments mapped</div>
+      <div><b class="live-now"><span class="dot-live" style="width:6px;height:6px;border-radius:50%;background:var(--mint);display:inline-block;animation:pulse 1.6s ease-in-out infinite;"></span><span id="login-presence">connecting…</span></b>browsing right now</div>
+    </div>
+  </div>
+  <div id="login-form-side">
+    <div class="login-card">
+      <h2>Sign in</h2>
+      <p class="sub">This is a project demo — pick a role to continue, no password needed.</p>
+      <div class="role-tabs">
+        <button class="role-tab active" id="tab-student" onclick="setLoginRole('student')">Student</button>
+        <button class="role-tab" id="tab-faculty" onclick="setLoginRole('faculty')">Faculty</button>
+      </div>
+      <div class="field"><label for="login-name">Your name</label><input id="login-name" type="text" placeholder="e.g. Ritika Sood"></div>
+      <div class="field"><label for="login-id" id="login-id-label">Roll number</label><input id="login-id" type="text" placeholder="e.g. 102203045"></div>
+      <div class="field faculty-picker" id="faculty-picker-field"><label for="faculty-picker">Which profile are you managing?</label><select id="faculty-picker"></select></div>
+      <button class="btn btn-primary" onclick="doLogin()">Continue</button>
+      <p class="login-footnote">By continuing you agree this is a prototype — nothing here is a real Thapar login.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SCREEN ============ -->
+<div id="app-screen" class="hidden">
+  <header id="topbar">
+    <div class="topbar-inner">
+      <div class="brand" onclick="navigate('dashboard')">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="7" r="2.3" fill="#fff"/><circle cx="18" cy="7" r="2.3" fill="#fff"/><circle cx="12" cy="17.5" r="2.3" fill="#fff"/><path d="M7.8 8.7L10.7 15.6M16.2 8.7L13.3 15.6M8.3 7H15.7" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+        <span class="brand-word">FacultyConnect</span><small id="brand-tag"></small>
+      </div>
+      <div class="search-wrap">
+        <span class="icon">&#8981;</span>
+        <input id="global-search" type="text" placeholder="Search faculty, department…" oninput="onGlobalSearch(this.value)" onfocus="openPalette(this.value)">
+        <button class="kbd-btn" onclick="openPalette('')" aria-label="Open command palette">&#8984;K</button>
+      </div>
+      <nav class="topbar-nav" id="topbar-nav">
+        <div class="nav-pill-group">
+          <button class="nav-btn" data-route="dashboard" onclick="navigate('dashboard')"><span class="nb-icon">&#8962;</span>Dashboard</button>
+          <button class="nav-btn" data-route="directory" onclick="navigate('directory')"><span class="nb-icon">&#9776;</span>Directory</button>
+          <button class="nav-btn" data-route="match" onclick="navigate('match')"><span class="nb-icon">&#10022;</span>Find faculty</button>
+          <button class="nav-btn" data-route="messages" onclick="navigate('messages')"><span class="nb-icon">&#9993;</span>Messages</button>
+        </div>
+        <div class="right-cluster">
+          <span class="presence-badge" id="presence-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--mint);display:inline-block;"></span><span id="presence-count">…</span><span> live</span></span>
+          <button class="bell-btn hidden" id="bell-btn" onclick="navigate('messages')" aria-label="Messages"><span>&#128276;</span><span class="bell-badge hidden" id="bell-badge">0</span></button>
+          <span class="role-chip" id="role-chip"></span>
+          <button class="logout-btn" onclick="doLogout()">Log out</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="view" id="view-dashboard">
+    <div class="view-head">
+      <div><span class="kicker" id="dash-kicker">welcome back</span><h1 id="dash-title">Dashboard</h1><p id="dash-sub"></p></div>
+    </div>
+    <div class="stat-row" id="dash-stats"></div>
+    <div class="announce-banner scroll-reveal" id="announce-banner">
+      <span class="ab-icon">📣</span>
+      <div class="ab-scroll"><div class="ab-track" id="announce-track"></div></div>
+    </div>
+    <div class="two-col">
+      <div>
+        <div class="panel"><h3>Campus feed <span class="path">announcements</span></h3><div id="dash-feed"></div></div>
+        <div class="section-gap" id="dash-upload-panel"></div>
+      </div>
+      <div><div class="panel" id="dash-side-panel"></div></div>
+    </div>
+    <div class="section-gap"><h4 class="mini-head">Faculty spotlight</h4><div id="dash-spotlight"></div></div>
+  </main>
+
+  <main class="view hidden" id="view-directory">
+    <div class="view-head">
+      <div><span class="kicker">every department, one search</span><h1>Faculty directory</h1><p>Search by name, department, or a research area — Komal Bharti's group is fully live; other profiles are demo placeholders for the prototype.</p></div>
+    </div>
+    <div class="dir-controls" id="dir-filters"></div>
+    <div class="fac-grid stagger" id="dir-grid"></div>
+  </main>
+
+  <main class="view hidden" id="view-profile"></main>
+
+  <main class="view hidden" id="view-messages">
+    <div class="view-head"><div><span class="kicker">helpdesk</span><h1 id="msg-title">Messages</h1><p id="msg-sub"></p></div></div>
+    <div id="msg-body"></div>
+  </main>
+
+  <main class="view hidden" id="view-match">
+    <div class="view-head">
+      <div><span class="kicker">ai faculty matchmaker</span><h1>Find your faculty</h1><p>Describe what you're interested in — a project idea, a subject, a career direction — and this'll point you to the closest faculty match on campus.</p></div>
+    </div>
+    <div class="match-input-wrap">
+      <div class="field" style="margin-bottom:14px;"><textarea id="match-input" placeholder="e.g. I want to build an AI tool that reviews pull requests automatically"></textarea></div>
+      <button class="btn btn-ai" onclick="runMatch()">Find matches ✦</button>
+    </div>
+    <div class="match-results" id="match-results"></div>
+  </main>
+</div>
+
+<div id="toast"><span class="tdot"></span><span id="toast-text"></span></div>
+
+<button id="chat-fab" aria-label="Open helpdesk chat" onclick="toggleChat(true)">&#128172;</button>
+<div id="chat-panel" class="hidden">
+  <div class="chat-head">
+    <div><b>Campus helpdesk</b><span>Ask about faculty, courses or timings</span></div>
+    <button class="chat-close" onclick="toggleChat(false)" aria-label="Close chat">&times;</button>
+  </div>
+  <div class="chat-body" id="chat-body"></div>
+  <div class="chat-input-row">
+    <input id="chat-input" type="text" placeholder="Ask something…" onkeydown="if(event.key==='Enter')sendChat()">
+    <button onclick="sendChat()" aria-label="Send">&#10148;</button>
+  </div>
+</div>
+
+<div id="generic-modal-overlay" class="hidden" onclick="if(event.target===this)closeModal()">
+  <div id="generic-modal-box"></div>
+</div>
+
+<div id="cmdk-overlay" class="hidden" onclick="if(event.target===this)closePalette()">
+  <div id="cmdk-box">
+    <input id="cmdk-input" type="text" placeholder="Search faculty or jump to a page…" oninput="buildPaletteItems(this.value)" onkeydown="paletteKeydown(event)">
+    <div id="cmdk-list"></div>
+    <div class="cmdk-hint"><span>&uarr;&darr; navigate</span><span>&crarr; select</span><span>esc close</span></div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
