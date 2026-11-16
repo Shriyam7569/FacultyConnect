@@ -1,0 +1,176 @@
+/* FacultyConnect — POLISH LAYER (loaded last)
+   slim glass header · lit 3D cube · campus photo behind the directory header */
+
+/* ================= header: one slim row ================= */
+#topbar{background:linear-gradient(180deg,rgba(52,24,58,.9) 0%,rgba(40,17,45,.86) 100%);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);box-shadow:0 12px 32px -20px rgba(20,6,24,.75);}
+#topbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(242,181,68,.75) 22%,rgba(224,69,123,.55) 55%,transparent 100%);}
+.topbar-inner{padding-top:10px;padding-bottom:10px;gap:clamp(10px,1.6vw,22px);}
+#topbar .logo-tile{width:36px;height:36px;border-radius:11px;background:linear-gradient(140deg,#F0A24A 0%,#D9822B 55%,#B9651A 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 14px -6px rgba(217,130,43,.8);}
+#topbar .brand{gap:10px;}
+#topbar .brand-word{flex-direction:row;font-size:13px;letter-spacing:.09em;}
+#topbar .brand-word span{color:#F2B866;}
+
+.topbar-nav{max-width:none;margin:0;padding:4px;border-top:none;gap:2px;flex-shrink:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);border-radius:999px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);overflow:visible;}
+#topbar .nav-btn{padding:7px 14px;border:none;border-radius:999px;font-size:13.5px;font-weight:600;color:rgba(255,255,255,.72);transition:background .25s,color .25s,box-shadow .25s;}
+#topbar .nav-btn .nb-num{display:none;}
+#topbar .nav-btn:hover{color:#fff;background:rgba(255,255,255,.09);}
+#topbar .nav-btn.active{color:#2F1535;background:linear-gradient(140deg,#F6C56E 0%,#EBA043 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 6px 16px -8px rgba(242,181,68,.9);}
+
+.search-wrap{max-width:230px;margin-left:auto;}
+#topbar .search-wrap input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:8px 14px 8px 38px;font-size:13.5px;transition:background .2s,border-color .2s,box-shadow .2s;}
+#topbar .search-wrap input:focus{background:rgba(255,255,255,.12);border-color:rgba(242,181,68,.7);box-shadow:0 0 0 3px rgba(242,181,68,.16);}
+#topbar .search-wrap .search-ic{left:13px;width:17px;height:17px;transform:translateY(-50%);}
+.right-cluster{margin-left:0;gap:clamp(4px,1vw,12px);}
+#topbar .user-avatar{width:34px;height:34px;font-size:13.5px;background:linear-gradient(140deg,#F0A24A,#D9822B);box-shadow:0 0 0 2px rgba(47,21,53,1),0 0 0 3.5px rgba(242,181,68,.55);}
+.user-meta #user-name{font-size:13.5px;font-weight:600;}
+#topbar .role-chip{font-size:9.5px;}
+#topbar .icon-btn{width:36px;height:36px;border-radius:50%;}
+#topbar .icon-btn .ic{width:20px;height:20px;}
+#topbar .presence-badge{font-size:12px;}
+
+@media (max-width:1100px){
+  .topbar-inner{flex-wrap:wrap;}
+  .topbar-nav{order:9;width:100%;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;border-radius:16px;}
+  .topbar-nav::-webkit-scrollbar{display:none;}
+  #topbar .nav-btn{flex-shrink:0;}
+}
+
+/* ================= cube: lit, bevelled, grounded ================= */
+.cube-scene{--s:250px;perspective:880px;height:calc(var(--s) * 1.9);}
+.face{--lit:.6;border:1px solid rgba(255,236,200,.5);
+  filter:brightness(calc(.52 + var(--lit) * .78)) saturate(calc(.9 + var(--lit) * .35));
+  background:linear-gradient(180deg,rgba(47,21,53,.18) 0%,rgba(47,21,53,.38) 46%,rgba(36,14,41,.94) 100%),var(--img,none) center/cover no-repeat,#2F1535;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 3px 3px 10px rgba(255,255,255,.28),inset -4px -4px 14px rgba(0,0,0,.45);}
+.face--gold{background:linear-gradient(180deg,rgba(217,130,43,.3) 0%,rgba(190,105,25,.5) 46%,rgba(120,60,10,.95) 100%),var(--img,none) center/cover no-repeat,#B9691A;}
+.face--rose{background:linear-gradient(180deg,rgba(224,69,123,.28) 0%,rgba(150,45,95,.5) 46%,rgba(60,20,50,.95) 100%),var(--img,none) center/cover no-repeat,#7A2048;}
+/* glass highlight: a soft specular band whose strength follows the light */
+.face::before{background:linear-gradient(128deg,rgba(255,255,255,calc(.1 + var(--lit) * .42)) 0%,rgba(255,255,255,.04) 30%,transparent 46%);}
+.face.is-front{border-color:#F6C56E;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 3px 3px 12px rgba(255,255,255,.34),inset -4px -4px 14px rgba(0,0,0,.4),0 0 44px rgba(242,181,68,.4);}
+.face-bottom b{font-size:calc(var(--s) * .155);text-shadow:0 2px 14px rgba(0,0,0,.6);}
+.face-bottom small{color:rgba(255,255,255,.88);text-shadow:0 1px 6px rgba(0,0,0,.6);}
+.face-num{text-shadow:0 1px 6px rgba(0,0,0,.6);}
+
+/* floor: tight contact shadow + wide soft shadow + faint warm reflection */
+.cube-shadow{bottom:5%;width:calc(var(--s) * .92);height:18px;background:radial-gradient(rgba(20,6,24,.6),transparent 70%);filter:blur(2px);}
+.cube-scene::after{content:"";position:absolute;left:50%;bottom:1%;width:calc(var(--s) * 1.9);height:calc(var(--s) * .5);transform:translateX(-50%);border-radius:50%;pointer-events:none;z-index:-1;
+  background:radial-gradient(closest-side,rgba(47,21,53,.2) 0%,rgba(242,181,68,.12) 45%,transparent 100%);filter:blur(6px);}
+.cube-glow{background:radial-gradient(circle,rgba(242,181,68,.36) 0%,rgba(224,69,123,.14) 38%,rgba(74,35,82,0) 66%);}
+@media (max-width:700px){ .cube-scene{--s:180px;} }
+
+/* ================= directory: campus photo behind the header ================= */
+#view-directory .index-head{position:relative;isolation:isolate;border-bottom-color:transparent;padding-top:6px;}
+#view-directory .index-head::before{content:"";position:absolute;z-index:-2;left:calc(50% - 50vw);width:100vw;top:calc(-1 * clamp(36px,6vw,80px));bottom:0;
+  background:url('../assets/images/thapar-learning-centre.jpg') 60% 42%/cover no-repeat;}
+#view-directory .index-head::after{content:"";position:absolute;z-index:-1;left:calc(50% - 50vw);width:100vw;top:calc(-1 * clamp(36px,6vw,80px));bottom:0;
+  background:linear-gradient(90deg,rgba(248,244,239,.97) 0%,rgba(248,244,239,.9) 38%,rgba(248,244,239,.5) 64%,rgba(248,244,239,.12) 100%),
+             linear-gradient(180deg,transparent 62%,rgba(248,244,239,.85) 100%);}
+#view-directory .big-count{background:rgba(255,255,255,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:16px 22px;border-radius:16px;box-shadow:0 14px 34px -18px rgba(47,21,53,.5);align-self:end;}
+@media (max-width:960px){
+  #view-directory .index-head::after{background:linear-gradient(180deg,rgba(248,244,239,.93) 0%,rgba(248,244,239,.86) 100%);}
+  #view-directory .big-count{justify-self:start;}
+}
+
+/* ================= campus feed: each category has its own identity ================= */
+.feed--opening{--k:#D9822B;--k-soft:#FBEBD7;--k-ink:#8A4A0C;}
+.feed--paper{--k:#6B3FA0;--k-soft:#EDE4F7;--k-ink:#4A2A75;}
+.feed--course{--k:#1F7A6B;--k-soft:#DDF0EB;--k-ink:#15574C;}
+.feed--note{--k:#B4477A;--k-soft:#F9E3EC;--k-ink:#7E2B53;}
+.feed-row{position:relative;grid-template-columns:64px 1fr auto;gap:18px;align-items:center;padding:24px 14px 24px 0;}
+.feed-row::before{content:"";position:absolute;left:-14px;top:18px;bottom:18px;width:3px;border-radius:3px;background:var(--k);transform:scaleY(0);transform-origin:top;transition:transform .3s cubic-bezier(.2,.8,.2,1);}
+.feed-row:hover::before{transform:scaleY(1);}
+.feed-row:hover{background:linear-gradient(90deg,var(--k-soft) 0%,transparent 70%);padding-left:12px;}
+.feed-badge{position:relative;width:56px;height:56px;border-radius:16px;background:var(--k-soft);color:var(--k-ink);display:flex;align-items:center;justify-content:center;transition:background .3s,color .3s,transform .3s cubic-bezier(.3,1.5,.5,1);}
+.feed-badge .ic{width:24px;height:24px;stroke-width:1.6;}
+.feed-badge i{position:absolute;top:-7px;right:-7px;min-width:24px;height:20px;padding:0 5px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-family:var(--mono);font-style:normal;font-size:10.5px;color:var(--ink-3);display:flex;align-items:center;justify-content:center;}
+.feed-row:hover .feed-badge{background:var(--k);color:#fff;transform:rotate(-6deg) scale(1.06);}
+.feed-tagline{display:inline-flex;align-items:center;gap:8px;width:fit-content;background:var(--k-soft);color:var(--k-ink);border-radius:999px;padding:4px 11px;font-size:11px;font-weight:600;letter-spacing:.12em;margin-bottom:10px;}
+.feed-tagline::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--k);}
+.feed-live{font-style:normal;color:#1E8A5A;display:inline-flex;align-items:center;gap:5px;padding-left:8px;border-left:1px solid rgba(0,0,0,.14);}
+.feed-live::before{content:"";width:6px;height:6px;border-radius:50%;background:#2FB574;animation:pulse 2s ease-in-out infinite;}
+.feed-arrow{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:999px;color:var(--k-ink);border:1px solid transparent;transition:background .25s,border-color .25s,transform .2s;}
+.feed-arrow .ic{width:17px;height:17px;}
+.feed-cta{font-size:13px;font-weight:700;max-width:0;overflow:hidden;white-space:nowrap;opacity:0;transition:max-width .35s ease,opacity .25s;}
+.feed-row:hover .feed-arrow{background:#fff;border-color:var(--k);transform:none;}
+.feed-row:hover .feed-cta{max-width:110px;opacity:1;}
+@media (max-width:700px){
+  .feed-row{grid-template-columns:46px 1fr 22px;gap:12px;padding-right:0;}
+  .feed-badge{width:44px;height:44px;border-radius:13px;}
+  .feed-badge .ic{width:20px;height:20px;}
+  .feed-cta{display:none;}
+  .feed-arrow{padding:0;}
+}
+
+/* ================= cube: translucent glass ================= */
+.face{backface-visibility:visible;-webkit-backface-visibility:visible;
+  background:linear-gradient(180deg,rgba(120,80,130,.10) 0%,rgba(74,35,82,.16) 100%);
+  border:1px solid rgba(255,240,215,.7);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),inset 4px 4px 14px rgba(255,255,255,.34),inset -4px -4px 16px rgba(47,21,53,.3),inset 0 0 40px rgba(255,255,255,.08);}
+.face--gold{background:linear-gradient(180deg,rgba(242,181,68,.14) 0%,rgba(217,130,43,.24) 100%);}
+.face--rose{background:linear-gradient(180deg,rgba(240,120,160,.14) 0%,rgba(190,60,110,.22) 100%);}
+.face--ink{background:linear-gradient(160deg,rgba(120,80,130,.22),rgba(47,21,53,.3));}
+/* the photo sits inside the glass at half strength */
+.face::after,.face.is-front::after{content:"";position:absolute;inset:0;z-index:-1;transform:none;animation:none;background:var(--img,none) center/cover no-repeat;opacity:.5;}
+/* highlight + a soft dark foot so the label stays readable */
+.face::before{background:linear-gradient(128deg,rgba(255,255,255,calc(.14 + var(--lit) * .46)) 0%,rgba(255,255,255,.05) 30%,transparent 46%),linear-gradient(180deg,transparent 42%,rgba(36,14,41,.72) 100%);}
+.face--gold::before{background:linear-gradient(128deg,rgba(255,255,255,calc(.14 + var(--lit) * .46)) 0%,rgba(255,255,255,.05) 30%,transparent 46%),linear-gradient(180deg,transparent 42%,rgba(110,55,8,.74) 100%);}
+.face--rose::before{background:linear-gradient(128deg,rgba(255,255,255,calc(.14 + var(--lit) * .46)) 0%,rgba(255,255,255,.05) 30%,transparent 46%),linear-gradient(180deg,transparent 42%,rgba(70,20,55,.74) 100%);}
+/* far sides, seen through the cube: faint, no labels, not clickable */
+.face.is-back{pointer-events:none;border-color:rgba(255,240,215,.35);box-shadow:inset 0 0 30px rgba(255,255,255,.1);filter:brightness(.9);}
+.face.is-back > span{opacity:0;}
+.face.is-back::after{opacity:.2;}
+.face.is-back::before{opacity:.35;}
+.face.is-front{box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),inset 4px 4px 14px rgba(255,255,255,.38),inset -4px -4px 16px rgba(47,21,53,.28),0 0 46px rgba(242,181,68,.42);}
+.cube-shadow{background:radial-gradient(rgba(20,6,24,.38),transparent 70%);}
+
+/* ================= announcement strip: "campus wire" ================= */
+.announce-banner{display:flex;align-items:stretch;background:linear-gradient(90deg,#34183A 0%,#4A2352 55%,#3A1B42 100%);border:none;box-shadow:0 18px 36px -24px rgba(47,21,53,.8);position:relative;}
+.announce-banner::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,#F2B544,#E0457B 50%,#F2B544);background-size:200% 100%;animation:wireLine 6s linear infinite;}
+@keyframes wireLine{to{background-position:200% 0;}}
+.ab-label{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 34px 0 max(var(--gutter),calc(50vw - 590px + var(--gutter)));background:linear-gradient(140deg,#F6C56E,#EBA043);color:#2F1535;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;clip-path:polygon(0 0,100% 0,calc(100% - 20px) 100%,0 100%);position:relative;z-index:1;}
+.ab-label .live-dot{background:#C2273A;box-shadow:0 0 0 3px rgba(194,39,58,.22);}
+.ab-scroll{flex:1;min-width:0;padding:15px 0;-webkit-mask:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 80px),transparent 100%);mask:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 80px),transparent 100%);}
+.ab-track{animation-duration:60s;}
+.ab-item{gap:10px;font-family:var(--sans);font-size:14.5px;color:rgba(255,255,255,.82);opacity:1;}
+.ab-item b{color:#F6C56E;font-weight:700;}
+.ab-item::after{content:"";width:7px;height:7px;margin:0 34px;border-radius:2px;transform:rotate(45deg);background:rgba(255,255,255,.3);opacity:1;}
+.ab-kind{font-style:normal;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:3px 9px;border-radius:999px;color:#2F1535;background:#F9C9DB;}
+.ab--opening .ab-kind{background:#F8D9A8;}
+.ab--paper .ab-kind{background:#DCCBF3;}
+.ab--course .ab-kind{background:#BFE6DC;}
+@media (max-width:700px){ .ab-label{padding:0 26px 0 16px;font-size:10.5px;letter-spacing:.12em;} .ab-item{font-size:13.5px;} }
+
+/* ================= cube: solid (not see-through) ================= */
+.face{backface-visibility:hidden;-webkit-backface-visibility:hidden;background:linear-gradient(165deg,#5A2D63 0%,#3A1B42 60%,#2A1230 100%);}
+.face--gold{background:linear-gradient(165deg,#E79A3C 0%,#C57A22 60%,#9A5A12 100%);}
+.face--rose{background:linear-gradient(165deg,#B8437A 0%,#8A2E5C 60%,#5E1E40 100%);}
+.face--ink{background:linear-gradient(165deg,#4A2352 0%,#2F1535 60%,#1F0D24 100%);}
+.face::after,.face.is-front::after{opacity:.34;}
+.cube-shadow{background:radial-gradient(rgba(20,6,24,.6),transparent 70%);}
+
+/* cube: more opaque — the photo is only a faint texture now */
+.face::after,.face.is-front::after{opacity:.12;}
+
+/* campus wire: light version */
+.announce-banner{background:linear-gradient(90deg,#FFF6E6 0%,#FBEEDD 50%,#FFF6E6 100%);box-shadow:0 14px 30px -24px rgba(47,21,53,.45);border-top:1px solid #F0DFC4;}
+.ab-item{color:#4F4458;}
+.ab-item b{color:#4A2352;}
+.ab-item::after{background:rgba(74,35,82,.28);}
+
+/* ================= dashboard: campus photo behind the greeting, fading out toward the cube ================= */
+.dash-hero{position:relative;isolation:isolate;}
+.dash-hero::before{content:"";position:absolute;z-index:-1;pointer-events:none;
+  left:calc(50% - 50vw);right:30%;top:calc(-1 * clamp(36px,6vw,80px));bottom:-48px;
+  background:url('../assets/images/thapar-learning-centre.jpg') 20% center/cover no-repeat;opacity:.3;
+  -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 38%,transparent 100%),linear-gradient(180deg,#000 0%,#000 70%,transparent 100%);
+  -webkit-mask-composite:source-in;
+  mask-image:linear-gradient(90deg,#000 0%,#000 38%,transparent 100%),linear-gradient(180deg,#000 0%,#000 70%,transparent 100%);
+  mask-composite:intersect;}
+@media (max-width:960px){
+  .dash-hero::before{right:calc(50% - 50vw);bottom:auto;height:560px;opacity:.26;
+    -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 55%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 55%,transparent 100%);-webkit-mask-composite:source-over;mask-composite:add;}
+}
+/* keep the greeting readable over the photo: same colours, soft light halo */
+.dh-copy .kicker,.dh-copy h1 .greet-word,.dh-copy p{text-shadow:0 0 10px rgba(248,244,239,.95),0 0 22px rgba(248,244,239,.8);}
+.dh-copy .kicker{color:var(--ink-2);}
+.dh-copy h1 em.shimmer{filter:drop-shadow(0 0 10px rgba(248,244,239,.95)) drop-shadow(0 2px 6px rgba(150,80,10,.25));}
+.dh-copy .btn-ghost{background:rgba(255,255,255,.82);}

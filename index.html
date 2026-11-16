@@ -1,152 +1,218 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="plum">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FacultyConnect — Thapar Institute</title>
 <meta name="description" content="FacultyConnect — a live campus hub for finding faculty, their courses, assignments, question banks, and getting help, at Thapar Institute of Engineering & Technology.">
+<meta name="theme-color" content="#2F1535">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2218%22%20fill%3D%22%23D9822B%22%2F%3E%3Cg%20fill%3D%22%23fff%22%20transform%3D%22translate(8%2010)%20scale(.84)%22%3E%3Cpath%20d%3D%22M50%2017%20L96%2036%20L50%2055%20L4%2036%20Z%22%2F%3E%3Cpath%20d%3D%22M26%2047.5%20L50%2057.5%20L74%2047.5%20L74%2067%20C66%2062.5%2057%2062%2050%2065.5%20C43%2062%2034%2062.5%2026%2067%20Z%22%2F%3E%3Cpath%20d%3D%22M14.6%2039.4%20L17.6%2038.2%20L17.6%2062%20L14.6%2062%20Z%22%2F%3E%3Cpath%20d%3D%22M16.1%2059%20L22.5%2075%20C19.5%2077.4%2012.7%2077.4%209.7%2075%20Z%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/motion.css">
+<link rel="stylesheet" href="css/intro.css">
+<link rel="stylesheet" href="css/polish.css">
 </head>
 <body>
-<div class="orb orb1" aria-hidden="true"></div>
-<div class="orb orb2" aria-hidden="true"></div>
-<div class="orb orb3" aria-hidden="true"></div>
 
 <!-- ============ LOGIN SCREEN ============ -->
 <div id="login-screen">
-  <div id="login-visual">
-    <div class="glow" aria-hidden="true"></div>
-    <div class="lv-blob lv-blob1" aria-hidden="true"></div>
-    <div class="lv-blob lv-blob2" aria-hidden="true"></div>
-    <div class="login-mark"><span class="lm-icon"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="7" r="2.3" fill="#fff"/><circle cx="18" cy="7" r="2.3" fill="#fff"/><circle cx="12" cy="17.5" r="2.3" fill="#fff"/><path d="M7.8 8.7L10.7 15.6M16.2 8.7L13.3 15.6M8.3 7H15.7" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>facultyconnect · thapar institute</div>
+  <section id="login-visual" aria-label="FacultyConnect">
+    <div class="lv-photo" aria-hidden="true"></div>
+    <div class="lv-grid" aria-hidden="true"></div>
+    <div class="login-mark"><span class="logo-tile logo-tile--glass" aria-hidden="true"><svg class="cap-ic" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 17 L96 36 L50 55 L4 36 Z"/><path d="M26 47.5 L50 57.5 L74 47.5 L74 67 C66 62.5 57 62 50 65.5 C43 62 34 62.5 26 67 Z"/><path d="M14.6 39.4 L17.6 38.2 L17.6 62 L14.6 62 Z"/><path d="M16.1 59 L22.5 75 C19.5 77.4 12.7 77.4 9.7 75 Z"/></svg></span><span>FACULTY<br>CONNECT</span></div>
     <div class="login-hero">
-      <h1>Find your <em>faculty</em>, fast.</h1>
-      <p>One place for every department at Thapar — courses, assignments, question banks, and a direct, live line to the people teaching them.</p>
+      <span class="kicker kicker--light">FacultyConnect / Thapar Institute</span>
+      <h1 class="x3d x3d--dark">Find your<span class="lh-em"><em class="shimmer">next</em></span>direction.</h1>
+      <p>A living campus index for the people, research, and work shaping what comes next.</p>
     </div>
     <div class="campus-strip">
-      <div><b id="stat-fac">4</b>faculty live</div>
-      <div><b>7</b>departments mapped</div>
-      <div><b class="live-now"><span class="dot-live" style="width:6px;height:6px;border-radius:50%;background:var(--mint);display:inline-block;animation:pulse 1.6s ease-in-out infinite;"></span><span id="login-presence">connecting…</span></b>browsing right now</div>
-    </div>
-  </div>
-  <div id="login-form-side">
-    <div class="login-card">
-      <h2>Sign in</h2>
-      <p class="sub">This is a project demo — pick a role to continue, no password needed.</p>
-      <div class="role-tabs">
-        <button class="role-tab active" id="tab-student" onclick="setLoginRole('student')">Student</button>
-        <button class="role-tab" id="tab-faculty" onclick="setLoginRole('faculty')">Faculty</button>
+      <span class="mono">01 — 04</span>
+      <div class="cs-stats">
+        <span><b id="stat-fac">4</b> faculty live</span>
+        <span><b>7</b> departments mapped</span>
       </div>
-      <div class="field"><label for="login-name">Your name</label><input id="login-name" type="text" placeholder="e.g. Ritika Sood"></div>
+    </div>
+  </section>
+  <section id="login-form-side">
+    <div class="login-card">
+      <span class="kicker">Welcome back</span>
+      <h2 class="x3d" data-drop>Step into campus.</h2>
+      <p class="sub">Choose a view to explore the live academic network. This is a project demo — no password needed.</p>
+      <div class="role-tabs" role="tablist" aria-label="Sign in as">
+        <button class="role-tab active" id="tab-student" role="tab" onclick="setLoginRole('student')">Student</button>
+        <button class="role-tab" id="tab-faculty" role="tab" onclick="setLoginRole('faculty')">Faculty</button>
+      </div>
+      <div class="field"><label for="login-name">Your name</label><input id="login-name" type="text" placeholder="e.g. Ritika Sood" autocomplete="name"></div>
       <div class="field"><label for="login-id" id="login-id-label">Roll number</label><input id="login-id" type="text" placeholder="e.g. 102203045"></div>
       <div class="field faculty-picker" id="faculty-picker-field"><label for="faculty-picker">Which profile are you managing?</label><select id="faculty-picker"></select></div>
-      <button class="btn btn-primary" onclick="doLogin()">Continue</button>
+      <button class="btn btn-dark btn-block btn-split" onclick="doLogin()"><span>Continue</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg></button>
+      <p class="login-presence-line"><span class="live-dot" aria-hidden="true"></span><span><span id="login-presence">connecting…</span> people are exploring right now</span></p>
       <p class="login-footnote">By continuing you agree this is a prototype — nothing here is a real Thapar login.</p>
     </div>
-  </div>
+  </section>
 </div>
 
 <!-- ============ APP SCREEN ============ -->
 <div id="app-screen" class="hidden">
   <header id="topbar">
     <div class="topbar-inner">
-      <div class="brand" onclick="navigate('dashboard')">
-        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="7" r="2.3" fill="#fff"/><circle cx="18" cy="7" r="2.3" fill="#fff"/><circle cx="12" cy="17.5" r="2.3" fill="#fff"/><path d="M7.8 8.7L10.7 15.6M16.2 8.7L13.3 15.6M8.3 7H15.7" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-        <span class="brand-word">FacultyConnect</span><small id="brand-tag"></small>
-      </div>
-      <div class="search-wrap">
-        <span class="icon">&#8981;</span>
-        <input id="global-search" type="text" placeholder="Search faculty, department…" oninput="onGlobalSearch(this.value)" onfocus="openPalette(this.value)">
-        <button class="kbd-btn" onclick="openPalette('')" aria-label="Open command palette">&#8984;K</button>
-      </div>
-      <nav class="topbar-nav" id="topbar-nav">
-        <div class="nav-pill-group">
-          <button class="nav-btn" data-route="dashboard" onclick="navigate('dashboard')"><span class="nb-icon">&#8962;</span>Dashboard</button>
-          <button class="nav-btn" data-route="directory" onclick="navigate('directory')"><span class="nb-icon">&#9776;</span>Directory</button>
-          <button class="nav-btn" data-route="match" onclick="navigate('match')"><span class="nb-icon">&#10022;</span>Find faculty</button>
-          <button class="nav-btn" data-route="messages" onclick="navigate('messages')"><span class="nb-icon">&#9993;</span>Messages</button>
-        </div>
-        <div class="right-cluster">
-          <span class="presence-badge" id="presence-badge"><span style="width:6px;height:6px;border-radius:50%;background:var(--mint);display:inline-block;"></span><span id="presence-count">…</span><span> live</span></span>
-          <button class="bell-btn hidden" id="bell-btn" onclick="navigate('messages')" aria-label="Messages"><span>&#128276;</span><span class="bell-badge hidden" id="bell-badge">0</span></button>
-          <span class="role-chip" id="role-chip"></span>
-          <button class="logout-btn" onclick="doLogout()">Log out</button>
-        </div>
+      <a class="brand" href="#/dashboard" aria-label="FacultyConnect home">
+        <span class="logo-tile" aria-hidden="true"><svg class="cap-ic" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 17 L96 36 L50 55 L4 36 Z"/><path d="M26 47.5 L50 57.5 L74 47.5 L74 67 C66 62.5 57 62 50 65.5 C43 62 34 62.5 26 67 Z"/><path d="M14.6 39.4 L17.6 38.2 L17.6 62 L14.6 62 Z"/><path d="M16.1 59 L22.5 75 C19.5 77.4 12.7 77.4 9.7 75 Z"/></svg></span>
+        <span class="brand-word">FACULTY<span>CONNECT</span></span><small id="brand-tag" class="sr-only"></small>
+      </a>
+      <nav class="topbar-nav" id="topbar-nav" aria-label="Primary">
+        <button class="nav-btn" data-route="dashboard" onclick="navigate('dashboard')"><span class="nb-num">01</span>Dashboard</button>
+        <button class="nav-btn" data-route="directory" onclick="navigate('directory')"><span class="nb-num">02</span>Directory</button>
+        <button class="nav-btn" data-route="match" onclick="navigate('match')"><span class="nb-num">03</span>Find faculty</button>
+        <button class="nav-btn" data-route="messages" onclick="navigate('messages')"><span class="nb-num">04</span>Messages</button>
       </nav>
+      <div class="search-wrap">
+        <svg class="ic search-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="global-search" type="search" placeholder="Search…" aria-label="Search faculty, research, courses" oninput="onGlobalSearch(this.value)" onfocus="openPalette(this.value)">
+      </div>
+      <div class="right-cluster">
+        <span class="presence-badge" id="presence-badge"><span class="live-dot" aria-hidden="true"></span><span id="presence-count">…</span><span> live</span></span>
+        <button class="icon-btn bell-btn hidden" id="bell-btn" onclick="navigate('messages')" aria-label="Messages"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/></svg><span class="bell-badge hidden" id="bell-badge">0</span></button>
+        <span class="user-chip"><span class="user-avatar" id="user-avatar" aria-hidden="true"></span><span class="user-meta"><span id="user-name"></span><span class="role-chip" id="role-chip"></span></span></span>
+        <button class="icon-btn logout-btn" onclick="doLogout()" aria-label="Log out" title="Log out"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg></button>
+        <button class="icon-btn menu-btn" id="menu-btn" onclick="toggleMenu()" aria-label="Open menu" aria-expanded="false" aria-controls="nav-drawer"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      </div>
     </div>
   </header>
 
-  <main class="view" id="view-dashboard">
-    <div class="view-head">
-      <div><span class="kicker" id="dash-kicker">welcome back</span><h1 id="dash-title">Dashboard</h1><p id="dash-sub"></p></div>
+  <!-- Drawer menu (hamburger) -->
+  <div id="nav-drawer" class="hidden" onclick="if(event.target===this)toggleMenu(false)">
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
+      <div class="drawer-head"><span class="kicker">Menu</span><button class="icon-btn" onclick="toggleMenu(false)" aria-label="Close menu"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="drawer-links">
+        <button class="drawer-link" data-drawer-route="dashboard" onclick="toggleMenu(false);navigate('dashboard')"><span class="mono">01</span>Dashboard</button>
+        <button class="drawer-link" data-drawer-route="directory" onclick="toggleMenu(false);navigate('directory')"><span class="mono">02</span>Directory</button>
+        <button class="drawer-link" data-drawer-route="match" onclick="toggleMenu(false);navigate('match')"><span class="mono">03</span>Find faculty</button>
+        <button class="drawer-link" data-drawer-route="messages" onclick="toggleMenu(false);navigate('messages')"><span class="mono">04</span>Messages</button>
+      </div>
+      <div class="drawer-foot">
+        <button class="btn btn-ghost btn-block" onclick="toggleMenu(false);openPalette('')">Quick search <span class="mono">Ctrl / &#8984; K</span></button>
+        <button class="btn btn-ghost btn-block" onclick="toggleMenu(false);toggleChat(true)">Ask the helpdesk</button>
+        <button class="btn btn-dark btn-block" onclick="toggleMenu(false);doLogout()">Log out</button>
+      </div>
     </div>
-    <div class="stat-row" id="dash-stats"></div>
-    <div class="announce-banner scroll-reveal" id="announce-banner">
-      <span class="ab-icon">📣</span>
+  </div>
+
+  <main class="view" id="view-dashboard">
+    <section class="dash-hero">
+      <div class="dh-copy">
+        <span class="kicker" id="dash-kicker">welcome back</span>
+        <h1 id="dash-title">Dashboard</h1>
+        <p id="dash-sub"></p>
+        <div class="dh-actions" id="dash-actions"></div>
+      </div>
+      <div class="dh-visual">
+        <div class="cube-scene" id="cube-scene">
+          <div class="cube-glow" aria-hidden="true"></div>
+          <div class="cube-ring" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="cube-float"><div class="cube" id="nav-cube" role="group" aria-label="Campus navigator: drag to spin, choose a side to go there"></div></div>
+          <div class="cube-shadow" aria-hidden="true"></div>
+        </div>
+        <div class="cube-ui">
+          <span class="cube-facing mono">Facing <b id="cube-facing">Now</b></span>
+          <button class="icon-btn sound-btn" id="sound-btn" type="button" aria-pressed="true" aria-label="Sound effects on" title="Sound effects"></button>
+        </div>
+      </div>
+    </section>
+    <div class="announce-banner" id="announce-banner" aria-label="Campus announcements">
+      <span class="ab-label"><span class="live-dot" aria-hidden="true"></span>Campus wire</span>
       <div class="ab-scroll"><div class="ab-track" id="announce-track"></div></div>
     </div>
-    <div class="two-col">
+    <div class="stat-row" id="dash-stats"></div>
+    <div class="two-col dash-cols">
       <div>
-        <div class="panel"><h3>Campus feed <span class="path">announcements</span></h3><div id="dash-feed"></div></div>
+        <section class="feed-section">
+          <div class="section-head"><div><span class="kicker">What's moving</span><h2 class="serif-h" data-drop>Campus feed</h2></div><button class="link-btn" onclick="navigate('directory')">View all <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
+          <div id="dash-feed"></div>
+        </section>
         <div class="section-gap" id="dash-upload-panel"></div>
       </div>
-      <div><div class="panel" id="dash-side-panel"></div></div>
+      <aside class="dash-aside">
+        <div id="dash-side-panel"></div>
+        <div id="dash-spotlight"></div>
+      </aside>
     </div>
-    <div class="section-gap"><h4 class="mini-head">Faculty spotlight</h4><div id="dash-spotlight"></div></div>
+    <section class="cta-banner">
+      <div class="cta-inner">
+        <span class="kicker kicker--light">A place to begin</span>
+        <h2 class="x3d x3d--dark">Curiosity is <em class="marker marker--dark">infrastructure.</em></h2>
+        <button class="btn btn-outline-light" onclick="navigate('directory')">Meet the people behind the work <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg></button>
+      </div>
+    </section>
   </main>
 
   <main class="view hidden" id="view-directory">
-    <div class="view-head">
-      <div><span class="kicker">every department, one search</span><h1>Faculty directory</h1><p>Search by name, department, or a research area — Komal Bharti's group is fully live; other profiles are demo placeholders for the prototype.</p></div>
+    <div class="index-head">
+      <div>
+        <span class="kicker" id="dir-kicker">The people index</span>
+        <h1 class="sans-display x3d">Find your <span class="outline">people.</span></h1>
+        <p>Not just a list of names. A living map of the minds, courses, and research shaping campus — Komal Bharti's group is fully live; other profiles are demo placeholders for the prototype.</p>
+      </div>
+      <div class="big-count"><b id="dir-count-num">4</b><span id="dir-count-lbl">faculty profiles</span></div>
     </div>
-    <div class="dir-controls" id="dir-filters"></div>
-    <div class="fac-grid stagger" id="dir-grid"></div>
+    <div class="dir-bar"><div class="dir-controls" id="dir-filters"></div><span class="mono dir-total" id="dir-total"></span></div>
+    <div class="fac-grid" id="dir-grid"></div>
   </main>
 
   <main class="view hidden" id="view-profile"></main>
 
   <main class="view hidden" id="view-messages">
-    <div class="view-head"><div><span class="kicker">helpdesk</span><h1 id="msg-title">Messages</h1><p id="msg-sub"></p></div></div>
+    <div class="index-head index-head--small"><div><span class="kicker">Helpdesk / inbox</span><h1 class="sans-display x3d" id="msg-title">Messages</h1><p id="msg-sub"></p></div></div>
     <div id="msg-body"></div>
   </main>
 
   <main class="view hidden" id="view-match">
-    <div class="view-head">
-      <div><span class="kicker">ai faculty matchmaker</span><h1>Find your faculty</h1><p>Describe what you're interested in — a project idea, a subject, a career direction — and this'll point you to the closest faculty match on campus.</p></div>
-    </div>
+    <section class="photo-banner photo-banner--match">
+      <div class="pb-inner">
+        <span class="kicker kicker--light">AI faculty matchmaker</span>
+        <h1 class="x3d x3d--dark">Find your <em class="marker marker--dark">faculty.</em></h1>
+        <p>Describe what you're interested in — a project idea, a subject, a career direction — and this'll point you to the closest faculty match on campus.</p>
+      </div>
+    </section>
     <div class="match-input-wrap">
-      <div class="field" style="margin-bottom:14px;"><textarea id="match-input" placeholder="e.g. I want to build an AI tool that reviews pull requests automatically"></textarea></div>
-      <button class="btn btn-ai" onclick="runMatch()">Find matches ✦</button>
+      <div class="field"><label for="match-input">What do you want to work on?</label><textarea id="match-input" placeholder="e.g. I want to build an AI tool that reviews pull requests automatically"></textarea></div>
+      <button class="btn btn-accent btn-split" onclick="runMatch()"><span>Find matches</span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg></button>
     </div>
     <div class="match-results" id="match-results"></div>
   </main>
+
+  <footer class="site-foot">
+    <span class="logo-tile" aria-hidden="true"><svg class="cap-ic" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 17 L96 36 L50 55 L4 36 Z"/><path d="M26 47.5 L50 57.5 L74 47.5 L74 67 C66 62.5 57 62 50 65.5 C43 62 34 62.5 26 67 Z"/><path d="M14.6 39.4 L17.6 38.2 L17.6 62 L14.6 62 Z"/><path d="M16.1 59 L22.5 75 C19.5 77.4 12.7 77.4 9.7 75 Z"/></svg></span>
+    <span>FacultyConnect · Thapar Institute of Engineering &amp; Technology, Patiala</span>
+    <span class="mono">Prototype · 2026</span>
+  </footer>
 </div>
 
-<div id="toast"><span class="tdot"></span><span id="toast-text"></span></div>
+<div id="toast" role="status" aria-live="polite"><span class="tdot"></span><span id="toast-text"></span></div>
 
-<button id="chat-fab" aria-label="Open helpdesk chat" onclick="toggleChat(true)">&#128172;</button>
-<div id="chat-panel" class="hidden">
+<button id="chat-fab" aria-label="Open helpdesk chat" onclick="toggleChat(true)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 01-12.3 7.5L3 21l2-5.7A8.5 8.5 0 1121 11.5z"/></svg><span>Helpdesk</span></button>
+<div id="chat-panel" class="hidden" role="dialog" aria-label="Campus helpdesk">
   <div class="chat-head">
-    <div><b>Campus helpdesk</b><span>Ask about faculty, courses or timings</span></div>
-    <button class="chat-close" onclick="toggleChat(false)" aria-label="Close chat">&times;</button>
+    <div><span class="kicker kicker--light">Campus helpdesk</span><b>How can we help?</b><span>Ask about faculty, courses or timings</span></div>
+    <button class="chat-close" onclick="toggleChat(false)" aria-label="Close chat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="chat-body" id="chat-body"></div>
   <div class="chat-input-row">
-    <input id="chat-input" type="text" placeholder="Ask something…" onkeydown="if(event.key==='Enter')sendChat()">
-    <button onclick="sendChat()" aria-label="Send">&#10148;</button>
+    <input id="chat-input" type="text" placeholder="Ask something…" aria-label="Ask the helpdesk" onkeydown="if(event.key==='Enter')sendChat()">
+    <button onclick="sendChat()" aria-label="Send"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
   </div>
 </div>
 
 <div id="generic-modal-overlay" class="hidden" onclick="if(event.target===this)closeModal()">
-  <div id="generic-modal-box"></div>
+  <div id="generic-modal-box" role="dialog" aria-modal="true"></div>
 </div>
 
 <div id="cmdk-overlay" class="hidden" onclick="if(event.target===this)closePalette()">
-  <div id="cmdk-box">
-    <input id="cmdk-input" type="text" placeholder="Search faculty or jump to a page…" oninput="buildPaletteItems(this.value)" onkeydown="paletteKeydown(event)">
+  <div id="cmdk-box" role="dialog" aria-modal="true" aria-label="Quick search">
+    <input id="cmdk-input" type="text" placeholder="Search faculty or jump to a page…" aria-label="Search faculty or jump to a page" oninput="buildPaletteItems(this.value)" onkeydown="paletteKeydown(event)">
     <div id="cmdk-list"></div>
     <div class="cmdk-hint"><span>&uarr;&darr; navigate</span><span>&crarr; select</span><span>esc close</span></div>
   </div>
@@ -154,5 +220,7 @@
 
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/intro.js"></script>
 </body>
 </html>

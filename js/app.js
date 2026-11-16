@@ -35,7 +35,7 @@ async function initCapabilities(){
   if(roomCap) setupPresence();
   else {
     const pb = document.getElementById('presence-badge'); if(pb) pb.classList.add('hidden');
-    const lp = document.getElementById('login-presence'); if(lp) lp.textContent = 'you';
+    const lp = document.getElementById('login-presence'); if(lp) lp.parentElement.textContent = 'Live presence shows here when the campus network is online.';
   }
 }
 function dbSyncFaculty(faculty){
@@ -100,6 +100,8 @@ function renderPresenceCount(){
   const count = Math.max(peers.length, 1);
   const pc = document.getElementById('presence-count'); if(pc) pc.textContent = count;
   const lp = document.getElementById('login-presence'); if(lp) lp.textContent = count;
+  const dc = document.getElementById('dir-count-num');
+  if(dc){ dc.textContent = count; document.getElementById('dir-count-lbl').textContent = 'people online right now'; }
   const badge = document.getElementById('profile-live-badge');
   if(badge){
     const id = badge.dataset.facultyId;
@@ -128,6 +130,11 @@ function doLogin(){
   state.idNum = document.getElementById('login-id').value.trim();
   state.managingId = loginRole==='faculty' ? document.getElementById('faculty-picker').value : null;
   persist();
+  // graduation-cap intro plays over the site while the dashboard renders underneath
+  if(typeof window.playIntro === 'function'){
+    const shown = state.role==='faculty' && !document.getElementById('login-name').value.trim() ? (findFaculty(state.managingId)||{}).name : state.name;
+    window.playIntro(shown, state.role);
+  }
   boot();
 }
 function doLogout(){
@@ -181,7 +188,37 @@ function setupScrollReveal(){
 }
 
 /* ============================ AVATAR HELPER ============================ */
-function initials(name){ return name.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
+function initials(name){ const first = String(name||'').trim().replace(/^(Dr\.?|Prof\.?)\s+/i,''); return (first.charAt(0)||'?').toUpperCase(); }
+/* line icons used in rendered templates */
+const ICON = {
+  arrow:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg>',
+  chev:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
+};
+const FEED_LABEL = {opening:'Open role', paper:'Research', course:'Course', note:'Notice', msg:'Message'};
+/* each feed category has its own identity: icon, action word (colour comes from CSS) */
+const FEED_KIND = {
+  opening:{cta:'Apply',       icon:'<path d="M3 8h18v11H3z"/><path d="M8 8V5h8v3"/><path d="M3 13h18"/>'},
+  paper:  {cta:'Read',        icon:'<path d="M9 3h6"/><path d="M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/><path d="M7.5 15h9"/>'},
+  course: {cta:'Open course', icon:'<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5"/><path d="M9 8h6"/>'},
+  note:   {cta:'Details',     icon:'<path d="M4 10v4"/><path d="M4 11l11-5v12L4 13"/><path d="M15 9a3 3 0 010 6"/><path d="M7 14v4h3"/>'}
+};
+function roleTitle(f){ return f.role.split(',')[0].trim(); }
+function roleFocus(f){ const p = f.role.split(','); return p.length>1 ? p.slice(1).join(',').trim() : f.dept; }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function coverHTML(f){
+  if(f.cover && f.photo) return `<img src="${f.cover}" alt="" loading="lazy"><span class="fac-portrait"><img src="${f.photo}" alt="Portrait of ${esc(f.name)}" loading="lazy"></span>`;
+  if(f.photo) return `<span class="fac-portrait fac-portrait--center"><img src="${f.photo}" alt="Portrait of ${esc(f.name)}" loading="lazy"></span>`;
+  if(f.cover) return `<img src="${f.cover}" alt="" loading="lazy">`;
+  return `<span class="fac-initials">${initials(f.name)}</span>`;
+}
+/* hamburger drawer */
+function toggleMenu(open){
+  const d = document.getElementById('nav-drawer');
+  const willOpen = open===undefined ? d.classList.contains('hidden') : open;
+  d.classList.toggle('hidden', !willOpen);
+  document.getElementById('menu-btn').setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ toggleMenu(false); closeModal(); toggleChat(false); } });
 function avatarInner(f){
   if(f.photo) return `<img src="${f.photo}" class="avatar-img" alt="${f.name}">`;
   return initials(f.name);
@@ -194,7 +231,7 @@ function currentFaculty(){ return state.role==='faculty' ? findFaculty(state.man
 
 function renderRoute(){
   if(!state.loggedIn) return;
-  if(document.startViewTransition){ document.startViewTransition(()=>doRenderRoute()); }
+  if(document.startViewTransition){ const vt = document.startViewTransition(()=>doRenderRoute()); vt.ready.catch(()=>{}); vt.finished.catch(()=>{}); }
   else { doRenderRoute(); }
 }
 function doRenderRoute(){
@@ -226,6 +263,8 @@ function doRenderRoute(){
     document.getElementById('view-dashboard').classList.remove('hidden');
     document.querySelector('[data-route="dashboard"]').classList.add('active');
   }
+  const activeRoute = (document.querySelector('.nav-btn.active')||{}).dataset;
+  document.querySelectorAll('.drawer-link').forEach(b=> b.classList.toggle('active', !!activeRoute && b.dataset.drawerRoute===activeRoute.route));
   window.scrollTo({top:0, behavior:'instant'});
   updateBellBadge();
   setupScrollReveal();
@@ -236,6 +275,8 @@ function boot(){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app-screen').classList.remove('hidden');
   document.getElementById('role-chip').textContent = state.role==='faculty' ? 'Faculty' : 'Student';
+  document.getElementById('user-name').textContent = state.name;
+  document.getElementById('user-avatar').textContent = (state.name||'?').trim().charAt(0).toUpperCase();
   document.getElementById('brand-tag').textContent = state.role==='faculty' ? ' · faculty view' : ' · student view';
   renderChatGreeting();
   if(!location.hash) location.hash = '#/dashboard';
@@ -246,66 +287,128 @@ function buildAnnouncementTrack(){
   const items = [];
   FACULTY.forEach(f=>{ f.announcements.slice(0,2).forEach(a=> items.push({who:f.name, ...a})); });
   CAMPUS_NOTICES.forEach(n=> items.push({who:null, ...n}));
-  const html = items.map(i=>`<span class="ab-item">${i.who?`<b>${i.who}</b> — `:''}${i.text}</span>`).join('');
+  const html = items.map(i=>`<span class="ab-item ab--${FEED_KIND[i.tag]?i.tag:'note'}"><i class="ab-kind">${i.who ? (FEED_LABEL[i.tag]||'Notice') : 'Campus'}</i>${i.who?`<b>${esc(i.who)}</b>`:''}<span>${esc(i.text)}</span></span>`).join('');
   const track = document.getElementById('announce-track');
   if(track) track.innerHTML = html + html;
 }
 
 /* ============================ DASHBOARD ============================ */
+/* ---- live clock + time-of-day greeting (updates every second) ---- */
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function dayPeriod(h){
+  if(h>=5 && h<12) return {key:'morning', text:'Good morning,'};
+  if(h>=12 && h<17) return {key:'afternoon', text:'Good afternoon,'};
+  if(h>=17 && h<21) return {key:'evening', text:'Good evening,'};
+  return {key:'night', text:'Still up,'};     // late night: a greeting, not a goodbye
+}
+function fmtClock(d){ let h=d.getHours(); const ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+pad2(d.getMinutes())+':'+pad2(d.getSeconds())+' '+ap; }
+function updateLiveClock(){
+  const now = new Date();
+  const ld = document.getElementById('live-date'), lt = document.getElementById('live-time');
+  if(ld) ld.textContent = `${DAY_NAMES[now.getDay()]}, ${now.getDate()} ${MONTH_FULL[now.getMonth()]} ${now.getFullYear()}`;
+  if(lt) lt.textContent = fmtClock(now);
+  const p = dayPeriod(now.getHours());
+  const title = document.getElementById('dash-title');
+  if(title && state.loggedIn && title.dataset.period !== p.key){
+    const f = currentFaculty();
+    const who = state.role==='faculty' && f ? f.name : (state.name.split(' ')[0] || 'there');
+    title.dataset.period = p.key;
+    title.innerHTML = `<span class="greet-word">${p.text}</span> <em class="shimmer">${esc(who)}.</em>`;
+  }
+  document.querySelectorAll('[data-live-time]').forEach(el=> el.textContent = fmtClock(now).replace(/:\d\d (AM|PM)$/, ' $1'));
+  document.querySelectorAll('[data-live-greet]').forEach(el=> el.textContent = p.text.replace(',', ''));
+}
+setInterval(updateLiveClock, 1000);
+
 function renderDashboard(){
   const isFaculty = state.role==='faculty';
   const f = currentFaculty();
-  document.getElementById('dash-kicker').textContent = isFaculty ? 'faculty dashboard' : 'student dashboard';
-  document.getElementById('dash-title').textContent = isFaculty ? `Welcome, ${f.name}` : `Welcome, ${state.name.split(' ')[0]}`;
-  document.getElementById('dash-sub').textContent = isFaculty ? 'Post updates, upload material, and see who has reached out — live, across every device.' : 'Everything faculty across campus posted recently, in one feed.';
+  document.getElementById('dash-kicker').innerHTML = `<span class="lk-line"><span class="live-dot" aria-hidden="true"></span><span id="live-date"></span></span><span class="lk-line"><span id="live-time" class="mono-num"></span><span class="lk-sep">/</span><span>${isFaculty ? 'Faculty desk' : 'Your campus'}</span></span>`;
+  document.getElementById('dash-title').dataset.period = '';
+  updateLiveClock();
+  document.getElementById('dash-sub').textContent = isFaculty ? 'Post updates, upload material, and see who has reached out — live, across every device.' : 'The right people, context, and opportunities for the work you want to do.';
+  document.getElementById('dash-actions').innerHTML = isFaculty
+    ? `<button class="btn btn-accent btn-split" onclick="document.getElementById('work-form').scrollIntoView({behavior:'smooth',block:'start'})"><span>Add to your timeline</span>${ICON.arrow}</button>
+       <button class="btn btn-ghost" onclick="navigate('faculty/${f.id}')">View your profile</button>`
+    : `<button class="btn btn-accent btn-split" onclick="navigate('directory')"><span>Explore the directory</span>${ICON.arrow}</button>
+       <button class="btn btn-ghost" onclick="navigate('match')">Find my faculty</button>`;
   buildAnnouncementTrack();
 
   const stats = document.getElementById('dash-stats');
   const tiles = isFaculty ? [
-    {n:f.stats.publications, l:'publications', href:'faculty/'+f.id+'/publications'},
-    {n:f.students.current.length, l:'active students', href:'faculty/'+f.id+'/students'},
-    {n:workItems(f).length, l:'items in your work timeline', href:'faculty/'+f.id+'/work'},
-    {n:f.messages.length, l:'messages received', href:'messages'}
+    {n:f.stats.publications, l:'publications', href:'faculty/'+f.id+'/publications', d:'Papers, venues and co-authors on your profile', cta:'Open publications'},
+    {n:f.students.current.length, l:'active students', href:'faculty/'+f.id+'/students', d:'Ph.D. and M.Tech students you supervise now', cta:'See students'},
+    {n:workItems(f).length, l:'items in your work timeline', href:'faculty/'+f.id+'/work', d:'Lectures, videos, solutions, papers and assignments', cta:'Open timeline'},
+    {n:f.messages.length, l:'messages received', href:'messages', d:'Student and colleague messages, synced live', cta:'Read messages'}
   ] : [
-    {n:FACULTY.length, l:'faculty listed', href:'directory'},
-    {n:7, l:'departments', href:'directory'},
-    {n:FACULTY.reduce((n,x)=>n+workItems(x).length,0), l:'resources shared', href:'faculty/komal-bharti/work'},
-    {n:roomCap? Math.max(roomCap.peers().length,1) : null, l:'browsing now', href:null}
+    {n:FACULTY.length, l:'faculty listed', href:'directory', d:'CSE, Mechanical, Electronics and Chemical faculty', cta:'Open directory'},
+    {n:7, l:'departments', href:'directory', d:'Every department mapped in one search', cta:'Browse'},
+    {n:FACULTY.reduce((n,x)=>n+workItems(x).length,0), l:'resources shared', href:'faculty/komal-bharti/work', d:'Lectures, videos, solutions, papers and projects', cta:'See all work'},
+    {n:roomCap? Math.max(roomCap.peers().length,1) : null, l:'browsing now', href:null, d:'People exploring FacultyConnect at this moment', cta:'Live presence'}
   ];
-  stats.innerHTML = tiles.map((t,i)=>`<div class="stat-tile${t.href?' clickable':''}"${t.href?` onclick="navigate('${t.href}')"`:''}><div class="num mono-num" id="stat-num-${i}">0</div><div class="lbl">${t.l}</div></div>`).join('');
+  stats.innerHTML = tiles.map((t,i)=>`<div class="stat-tile flip-tile${t.href?' clickable':''}" tabindex="0"${t.href?` role="link" onclick="navigate('${t.href}')" onkeydown="if(event.key==='Enter')navigate('${t.href}')"`:''}>
+    <div class="ft-inner"><div class="ft-face ft-front"><div class="num mono-num" id="stat-num-${i}">0</div><div class="lbl">${t.l}</div></div>
+    <div class="ft-face ft-back"><p>${t.d}</p><span>${t.cta}${t.href?' →':''}</span></div></div></div>`).join('');
   tiles.forEach((t,i)=>{ if(t.n!=null) animateCount(document.getElementById('stat-num-'+i), t.n); else document.getElementById('stat-num-'+i).textContent='—'; });
 
   const feed = document.getElementById('dash-feed');
   const allAnn = [];
   FACULTY.forEach(fac=> fac.announcements.forEach(a=> allAnn.push({who:fac.name, id:fac.id, ...a})));
-  feed.innerHTML = allAnn.slice(0,7).map(a=>`
-    <div class="feed-item"><span class="feed-tag tag-${a.tag}">${a.tag}</span>
-      <div><div class="feed-body"><span class="who">${a.who}</span> — ${a.text}</div><div class="feed-date">${a.date}</div></div></div>`).join('');
+  feed.innerHTML = allAnn.length ? allAnn.slice(0,7).map((a,i)=>`
+    <div class="feed-row feed--${FEED_KIND[a.tag]?a.tag:'note'}" role="link" tabindex="0" onclick="navigate('faculty/${a.id}')" onkeydown="if(event.key==='Enter')navigate('faculty/${a.id}')">
+      <span class="feed-badge" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24">${(FEED_KIND[a.tag]||FEED_KIND.note).icon}</svg><i>${pad2(i+1)}</i></span>
+      <div><span class="feed-tagline">${FEED_LABEL[a.tag]||a.tag}${a.tag==='opening'?'<em class="feed-live">Open now</em>':''}</span>
+        <div class="feed-title">${esc(a.text)}</div>
+        <div class="feed-meta"><span>${esc(a.who)}</span><span class="dot"></span><span>${esc(a.date)}</span></div></div>
+      <span class="feed-arrow"><span class="feed-cta">${(FEED_KIND[a.tag]||FEED_KIND.note).cta}</span>${ICON.arrow}</span>
+    </div>`).join('') : '<div class="empty" style="margin-top:24px;">Nothing posted yet — faculty updates will appear here as they come in.</div>';
 
   const side = document.getElementById('dash-side-panel');
   if(isFaculty){
     side.innerHTML = `
-      <h3>Recent messages</h3>
-      ${f.messages.length ? f.messages.slice(-3).reverse().map(m=>`
-        <div class="feed-item"><span class="feed-tag tag-msg">msg</span>
-          <div><div class="feed-body"><span class="who">${m.from}</span> — ${m.subject}</div><div class="feed-date">${m.reason}</div></div></div>`).join('')
-        : '<div class="empty">No messages yet — students who reach out will show up here live.</div>'}
-      <div style="margin-top:14px;"><button class="btn btn-ghost" onclick="navigate('messages')" style="width:100%;">View all messages</button></div>`;
+      <div class="progress-card">
+        <span class="kicker">Your inbox</span>
+        <div class="pc-big mono-num"><span id="prog-msgs">0</span></div>
+        <p class="pc-lbl">message${f.messages.length===1?'':'s'} from students and colleagues</p>
+        <div class="pc-lines">
+        ${f.messages.length ? f.messages.slice(-3).reverse().map(m=>`
+          <div class="progress-line"><span>${esc(m.from)} — ${esc(m.subject)}</span><b style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;margin-left:10px;">${esc(m.reason)}</b></div>`).join('')
+          : '<div class="empty empty--dark" style="margin-top:16px;">No messages yet — students who reach out will show up here live.</div>'}
+        </div>
+        <button class="link-btn" onclick="navigate('messages')">View all messages ${ICON.chev}</button>
+      </div>`;
+    animateCount(document.getElementById('prog-msgs'), f.messages.length);
   } else {
     const p = getProgress();
     const km = findFaculty('komal-bharti');
+    const explored = p.videos.length + p.assignments.length + p.qb.length;
+    const totalRes = Math.max(explored, FACULTY.reduce((n,x)=>n+workItems(x).length,0));
     side.innerHTML = `
-      <h3>Your progress</h3>
-      <div class="progress-line"><span>Videos watched</span><b id="prog-videos">0</b></div>
-      <div class="progress-line"><span>Assignments done</span><b id="prog-assign">0</b></div>
-      <div class="progress-line"><span>Questions attempted</span><b id="prog-qb">0</b></div>
-      <h3 style="margin-top:22px;">Quick links</h3>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button class="btn btn-ghost" onclick="navigate('faculty/komal-bharti')" style="justify-content:flex-start;">${avatarInner({photo:km.photo,name:km.name})!==initials(km.name)?`<span class="ql-avatar">${avatarInner(km)}</span>`:''}Komal Bharti — Software Engineering</button>
-        <button class="btn btn-ai" onclick="navigate('match')" style="justify-content:flex-start;">✦ Find my faculty (AI)</button>
-        <button class="btn btn-ghost" onclick="navigate('directory')" style="justify-content:flex-start;">Browse full directory</button>
-        <button class="btn btn-ghost" onclick="toggleChat(true)" style="justify-content:flex-start;">Ask the helpdesk</button>
+      <div class="progress-card">
+        <span class="kicker">Your progress</span>
+        <div class="pc-big mono-num"><span id="prog-total">00</span><small>/${pad2(totalRes)}</small></div>
+        <p class="pc-lbl">resources explored so far</p>
+        <div class="pc-bar"><span id="prog-bar"></span></div>
+        <div class="pc-lines">
+          <div class="progress-line"><span>Videos watched</span><b id="prog-videos">0</b></div>
+          <div class="progress-line"><span>Assignments done</span><b id="prog-assign">0</b></div>
+          <div class="progress-line"><span>Questions attempted</span><b id="prog-qb">0</b></div>
+        </div>
+        <button class="link-btn" onclick="navigate('faculty/komal-bharti/work')">See what's new ${ICON.chev}</button>
+      </div>
+      <div class="side-card" style="margin-top:28px;">
+        <span class="kicker">Shortcuts</span>
+        <div class="quick-links">
+          <button class="quick-link" onclick="navigate('faculty/komal-bharti')"><span style="display:flex;align-items:center;gap:12px;">${km.photo?`<span class="ql-avatar">${avatarInner(km)}</span>`:''}Komal Bharti — Software Engineering</span>${ICON.arrow}</button>
+          <button class="quick-link" onclick="navigate('match')"><span>Find my faculty (AI match)</span>${ICON.arrow}</button>
+          <button class="quick-link" onclick="navigate('directory')"><span>Browse full directory</span>${ICON.arrow}</button>
+          <button class="quick-link" onclick="toggleChat(true)"><span>Ask the helpdesk</span>${ICON.arrow}</button>
+        </div>
       </div>`;
+    const tot = document.getElementById('prog-total');
+    const dur = 700, t0 = performance.now();
+    (function tick(n){ const k=Math.min(1,(n-t0)/dur); tot.textContent = pad2(Math.round(explored*(1-Math.pow(1-k,3)))); if(k<1) requestAnimationFrame(tick); })(t0);
+    requestAnimationFrame(()=>{ const bar = document.getElementById('prog-bar'); if(bar) bar.style.width = (totalRes ? Math.round(explored/totalRes*100) : 0)+'%'; });
     animateCount(document.getElementById('prog-videos'), p.videos.length);
     animateCount(document.getElementById('prog-assign'), p.assignments.length);
     animateCount(document.getElementById('prog-qb'), p.qb.length);
@@ -318,15 +421,14 @@ function renderDashboard(){
 function spotlightHTML(f){
   return `
   <div class="spotlight">
-    <div class="spotlight-photo">${avatarInner(f)}</div>
-    <div>
-      <span class="spotlight-kicker">featured · ${f.dept}</span>
-      <h2>${f.name}</h2>
-      <p class="role">${f.role}</p>
-      <p class="desc">${f.tagline}</p>
-      <div class="chip-row">${f.research.slice(0,4).map(r=>`<span class="chip">${r.name.replace('/','')}</span>`).join('')}</div>
-      <button class="btn btn-coral" style="width:auto;" onclick="navigate('faculty/${f.id}')">Visit her page →</button>
+    <span class="kicker">In the spotlight ${ICON.arrow}</span>
+    <div class="spot-person">
+      <div class="spotlight-photo">${avatarInner(f)}</div>
+      <div><h3>${esc(f.name)}</h3><p class="role">${esc(roleFocus(f))}</p></div>
     </div>
+    <p class="spot-quote">“${esc(f.tagline)}”</p>
+    <div class="chip-row">${f.research.slice(0,3).map(r=>`<span class="chip">${esc(r.name.replace('/',''))}</span>`).join('')}</div>
+    <button class="link-btn link-accent" onclick="navigate('faculty/${f.id}')">View profile ${ICON.chev}</button>
   </div>`;
 }
 
@@ -497,7 +599,7 @@ function openWorkItem(fid, src, idx){
     dbSyncFaculty(f);
     if(u.type==='video' && state.role==='student') trackProgress('videos', f.id+'-'+(u.id||idx));
     extra = u.fileData ? `<a class="btn btn-coral btn-sm" href="${u.fileData}" download="${esc(u.fileName||'file')}" style="margin-right:8px;">Download ${esc(u.fileName||'file')}</a>`
-      : `<p style="color:var(--ink-faint);font-size:12.5px;margin:0 0 16px;">${u.fileName ? 'File: '+esc(u.fileName)+' — prototype storage keeps files only on the device they were uploaded from.' : 'This prototype doesn\'t host files — the entry, its date and its view count are what sync.'}</p>`;
+      : `<p style="color:var(--ink-3);font-size:13.5px;margin:0;flex-basis:100%;">${u.fileName ? 'File: '+esc(u.fileName)+' — prototype storage keeps files only on the device they were uploaded from.' : 'This prototype doesn\'t host files — the entry, its date and its view count are what sync.'}</p>`;
   }
   if(it.type==='assignment' && state.role==='student'){
     const uid = src==='assignment' ? f.id+'-'+idx : f.id+'-u'+(it.id||idx);
@@ -513,10 +615,10 @@ function openWorkItem(fid, src, idx){
   showModal(`
     <span class="type-badge t-${it.type}">${it.type}</span>
     <h3 style="margin-top:10px;">${esc(it.title)}</h3>
-    <p style="color:var(--ink-dim);font-size:13px;margin:0 0 10px;">Shared ${fmtDay(it.date)} by ${esc(f.name)}${it.course?' · '+esc(it.course):''}${it.due?' · due '+esc(it.due):''}${src==='upload'?' · '+it.views+' view'+(it.views===1?'':'s'):''}</p>
-    ${it.note?`<p style="font-size:13.5px;margin:0 0 14px;">${esc(it.note)}</p>`:''}
-    ${extra}
-    <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button>
+    <p class="mono" style="color:var(--ink-3);font-size:12.5px;margin:0 0 14px;line-height:1.6;">Shared ${fmtDay(it.date)} by ${esc(f.name)}${it.course?' · '+esc(it.course):''}${it.due?' · due '+esc(it.due):''}${src==='upload'?' · '+it.views+' view'+(it.views===1?'':'s'):''}</p>
+    ${it.note?`<p style="font-size:16px;line-height:1.6;color:var(--ink-2);margin:0 0 6px;">${esc(it.note)}</p>`:''}
+    <div class="modal-actions">${extra.replace(/margin-right:8px;/g,'')}
+    <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button></div>
   `);
 }
 
@@ -524,12 +626,16 @@ function openWorkItem(fid, src, idx){
 let dirFilter = 'all', dirQuery = '';
 function renderDirectory(){
   const depts = ['all', ...new Set(FACULTY.map(f=>f.dept))];
+  document.getElementById('dir-kicker').textContent = `The people index / ${pad2(depts.length-1)} departments`;
+  if(!roomCap){ document.getElementById('dir-count-num').textContent = FACULTY.length; document.getElementById('dir-count-lbl').textContent = 'faculty profiles on file'; }
+  else renderPresenceCount();
   document.getElementById('dir-filters').innerHTML = depts.map(d=>
     `<button class="filter-chip ${dirFilter===d?'active':''}" onclick="setDirFilter('${d.replace(/'/g,"\\'")}')">${d==='all'?'All departments':d}</button>`
   ).join('');
   renderDirGrid();
 }
 function setDirFilter(d){ dirFilter = d; renderDirectory(); }
+function clearDirSearch(){ dirFilter = 'all'; dirQuery = ''; const gs = document.getElementById('global-search'); if(gs) gs.value=''; renderDirectory(); }
 function onGlobalSearch(q){ dirQuery = q.toLowerCase(); if(!location.hash.includes('directory')) navigate('directory'); else renderDirGrid(); }
 function matchesQuery(f, q){
   if(!q) return true;
@@ -540,16 +646,20 @@ function renderDirGrid(){
   let list = FACULTY.filter(f=> (dirFilter==='all'||f.dept===dirFilter) && matchesQuery(f, dirQuery));
   list = list.slice().sort((a,b)=> (b.featured?1:0)-(a.featured?1:0));
   const grid = document.getElementById('dir-grid');
-  if(!list.length){ grid.innerHTML = '<div class="empty">No faculty match that search.</div>'; return; }
-  grid.innerHTML = list.map(f=>`
-    <div class="fac-card" style="--dept-color:${f.deptColor}" onclick="navigate('faculty/${f.id}')">
-      ${f.demo?'<span class="demo-badge">demo profile</span>':''}
-      <div class="fac-avatar">${avatarInner(f)}</div>
-      <div class="fac-name">${f.name}</div>
-      <div class="fac-role">${f.role}</div>
-      <div class="fac-desc">${f.tagline}</div>
-      <div class="fac-cta">Visit her page →</div>
-    </div>`).join('');
+  const total = document.getElementById('dir-total');
+  if(total) total.textContent = list.length+' profile'+(list.length===1?'':'s');
+  if(!list.length){ grid.innerHTML = `<div class="empty">No faculty match${dirQuery?` “${esc(dirQuery)}”`:' that filter'}. <button class="btn btn-ghost btn-sm" onclick="clearDirSearch()">Clear search &amp; filters</button></div>`; return; }
+  grid.innerHTML = list.map((f,i)=>`
+    <a class="fac-card" href="#/faculty/${f.id}" style="--dept-color:${f.deptColor}" aria-label="${esc(f.name)}, ${esc(f.role)}">
+      <div class="fac-cover">${coverHTML(f)}<span class="fac-num">${pad2(i+1)}</span>${f.demo?'<span class="demo-badge">demo profile</span>':''}</div>
+      <div class="fac-body">
+        <div class="fac-dept">${esc(f.dept)}</div>
+        <div class="fac-name">${esc(f.name)}</div>
+        <div class="fac-role">${esc(roleTitle(f))}</div>
+        <div class="fac-desc">${esc(f.tagline)}</div>
+        <div class="fac-foot"><span>${esc(roleFocus(f))}</span>${ICON.arrow}</div>
+      </div>
+    </a>`).join('');
   stagger(grid, ':scope > *', 0.05);
 }
 
@@ -558,28 +668,30 @@ function renderProfile(id, tab){
   const f = findFaculty(id);
   if(tab==='lectures') tab = 'work';
   const view = document.getElementById('view-profile');
-  if(!f){ view.innerHTML = '<div class="empty">Faculty not found.</div>'; return; }
+  if(!f){ view.innerHTML = `<div class="empty">That faculty profile doesn't exist. <button class="btn btn-ghost btn-sm" onclick="navigate('directory')">Back to the directory</button></div>`; return; }
   const isOwner = state.role==='faculty' && state.managingId===f.id;
   const tabs = [['about','About'],['work','All work'],['research','Research'],['publications','Publications'],['teaching','Teaching'],['assignments','Assignments'],['questionbank','Question bank'],['students','Students'],['contact','Contact']];
   view.style.setProperty('--dept-color', f.deptColor);
   view.innerHTML = `
-    <div class="profile-cover" style="--dept-color:${f.deptColor}; background: color-mix(in srgb, ${f.deptColor} 9%, var(--bg-card));">
-      <div class="cover-blob cb1"></div><div class="cover-blob cb2"></div>
+    <button class="back-link" onclick="navigate('directory')">${ICON.chev} The people index</button>
+    <div class="profile-cover" style="--dept-color:${f.deptColor};">
+      ${f.cover?`<div class="pc-img" style="background-image:url('${f.cover}')" aria-hidden="true"></div>`:''}
       <div class="profile-hero">
         <div class="profile-photo">${avatarInner(f)}</div>
         <div>
-          <h1>${f.name}${f.demo?' <span class="demo-badge">demo profile</span>':''}<span class="live-badge" id="profile-live-badge" data-faculty-id="${f.id}"><span style="width:6px;height:6px;border-radius:50%;background:var(--mint);display:inline-block;"></span><span>viewing now</span></span></h1>
-          <p class="role">${f.role}</p>
-          <p class="dept">${f.dept} · Thapar Institute of Engineering & Technology, Patiala</p>
-          <div class="profile-stats">
-            <div><b class="mono-num" id="pstat-0">0</b>publications</div>
-            <div><b class="mono-num" id="pstat-1">0</b>years in dept.</div>
-            <div><b class="mono-num" id="pstat-2">0</b>active students</div>
-          </div>
+          <span class="kicker">${esc(f.dept)}</span>
+          <h1>${esc(f.name)}${f.demo?' <span class="demo-badge">demo profile</span>':''}<span class="live-badge" id="profile-live-badge" data-faculty-id="${f.id}"><span class="live-dot"></span><span>viewing now</span></span></h1>
+          <p class="role">${esc(f.role)}</p>
+          <p class="dept">Thapar Institute of Engineering &amp; Technology, Patiala</p>
         </div>
       </div>
     </div>
-    <div class="tab-strip" style="--dept-color:${f.deptColor}">${tabs.map(t=>`<button class="p-tab ${t[0]===tab?'active':''}" onclick="navigate('faculty/${f.id}/${t[0]}')">${t[1]}</button>`).join('')}</div>
+    <div class="profile-stats">
+      <div><b class="mono-num" id="pstat-0">0</b>publications</div>
+      <div><b class="mono-num" id="pstat-1">0</b>years in dept.</div>
+      <div><b class="mono-num" id="pstat-2">0</b>active students</div>
+    </div>
+    <div class="tab-strip" role="tablist" style="--dept-color:${f.deptColor}">${tabs.map(t=>`<button class="p-tab ${t[0]===tab?'active':''}" role="tab" aria-selected="${t[0]===tab}" onclick="navigate('faculty/${f.id}/${t[0]}')">${t[1]}</button>`).join('')}</div>
     <div id="profile-tab-content" style="--dept-color:${f.deptColor}"></div>
   `;
   animateCount(document.getElementById('pstat-0'), f.stats.publications);
@@ -592,7 +704,11 @@ function renderProfile(id, tab){
   renderPresenceCount();
 }
 function profileTabHTML(f, tab, isOwner){
-  if(tab==='research'){ return `<div class="mod-grid">${f.research.map(r=>`<div class="mod"><div class="mod-name">${r.name}</div><div class="mod-desc">${r.desc}</div></div>`).join('')}</div>`; }
+  if(tab==='research'){
+    if(!f.research.length) return '<div class="empty">No research areas listed yet.</div>';
+    const nice = s=> s.replace('/','').replace(/-/g,' ').replace(/^\w/, c=>c.toUpperCase());
+    return `<div class="mod-grid">${f.research.map((r,i)=>`<div class="mod"><span class="mod-num">${pad2(i+1)} / ${esc(r.name)}</span><div class="mod-name">${esc(nice(r.name))}</div><div class="mod-desc">${esc(r.desc)}</div></div>`).join('')}</div>`;
+  }
   if(tab==='publications'){
     return `<div>${f.publications.map(p=>`
       <div class="pub"><div class="pub-year">${p.year}</div>
@@ -600,15 +716,15 @@ function profileTabHTML(f, tab, isOwner){
       </div>`).join('')}</div>`;
   }
   if(tab==='teaching'){
-    return `<table class="course-table"><thead><tr><th>Code</th><th>Course</th><th>Level</th></tr></thead><tbody>
+    return `<div class="table-scroll"><table class="course-table"><thead><tr><th>Code</th><th>Course</th><th>Level</th></tr></thead><tbody>
       ${f.teaching.map(c=>`<tr><td class="course-code">${c.code}</td><td>${c.name}</td><td><span class="level-badge">${c.level}</span></td></tr>`).join('')}
-      </tbody></table>`;
+      </tbody></table></div>`;
   }
   if(tab==='assignments'){
     const list = workItems(f).filter(it=>it.type==='assignment');
     if(!list.length) return '<div class="empty">No assignments posted yet.</div>';
     const p = getProgress();
-    return list.map(it=>{
+    return '<div class="assign-list">' + list.map(it=>{
       const uid = it.src==='assignment' ? f.id+'-'+it.idx : f.id+'-u'+(it.id||it.idx);
       const done = p.assignments.includes(uid);
       const st = assignmentStatus(it);
@@ -618,18 +734,18 @@ function profileTabHTML(f, tab, isOwner){
         <div class="assign-desc">${esc(it.note)}</div>
         <div class="assign-bottom"><span class="assign-due">${it.due?'Due '+esc(it.due)+' · ':''}posted ${fmtDay(it.date)}</span>${state.role==='student'?`<button class="btn ${done?'btn-ghost':'btn-coral'} btn-sm" onclick="toggleAssignmentDone('${uid}')">${done?'Marked done ✓':'Mark as done'}</button>`:''}</div>
       </div>`;
-    }).join('');
+    }).join('') + '</div>';
   }
   if(tab==='questionbank'){ return questionBankTabHTML(f, isOwner); }
   if(tab==='work'){
-    const intro = `<p style="color:var(--ink-dim);font-size:13.5px;margin:0 0 16px;max-width:60ch;">Everything ${esc(f.name)} has shared — lectures, recordings, solutions, papers, project material, assignments and question-bank additions — in one place, newest first.</p>`;
+    const intro = `<p style="color:var(--ink-2);font-size:17px;line-height:1.6;margin:0 0 24px;max-width:60ch;">Everything ${esc(f.name)} has shared — lectures, recordings, solutions, papers, project material, assignments and question-bank additions — in one place, newest first.</p>`;
     return `${isOwner ? workComposerHTML(f)+'<div class="section-gap"></div>' : intro}
       <div data-work-timeline data-fid="${f.id}">${workTimelineHTML(f)}</div>`;
   }
   if(tab==='students'){
     return `<h4 class="mini-head">Current students</h4>
       <div class="roster">${f.students.current.map(s=>`<div class="roster-item"><span class="rn">${s.name}</span><span class="rr">${s.role}</span><span class="rt">${s.topic}</span></div>`).join('') || '<div class="empty">No current students listed.</div>'}</div>
-      <h4 class="mini-head" style="margin-top:26px;">Alumni</h4>
+      <h4 class="mini-head" style="margin-top:40px;">Alumni</h4>
       <div class="roster">${f.students.alumni.map(s=>`<div class="roster-item"><span class="rn">${s.name}</span><span class="rr">${s.role}</span><span class="rt">${s.topic}</span></div>`).join('') || '<div class="empty">No alumni listed.</div>'}</div>`;
   }
   if(tab==='contact'){
@@ -643,11 +759,11 @@ function profileTabHTML(f, tab, isOwner){
           </div>
           <div class="field"><label for="c-subject">Subject</label><input id="c-subject" required placeholder="What's this about?"></div>
           <div class="field"><label for="c-message">Message</label><textarea id="c-message" rows="4" required placeholder="Write your message…"></textarea></div>
-          <button class="btn btn-primary" type="submit">Send — ${f.name.split(' ').slice(-1)[0]} will be notified</button>
+          <button class="btn btn-dark btn-block btn-split" type="submit"><span>Send — ${f.name.split(' ').slice(-1)[0]} will be notified</span>${ICON.arrow}</button>
         </form>
       </div>
-      <div class="panel">
-        <h3>Details</h3>
+      <div class="panel panel--plain">
+        <h4 class="mini-head">Details</h4>
         <div class="kv">
           <div class="kv-row"><div class="kv-key">Email</div><div class="kv-val">${f.email}</div></div>
           <div class="kv-row"><div class="kv-key">Office</div><div class="kv-val">${f.office}</div></div>
@@ -655,9 +771,9 @@ function profileTabHTML(f, tab, isOwner){
         </div>
       </div>
     </div>
-    <div class="panel" style="margin-top:20px;">
-      <h3>Ask before you write in</h3>
-      <div id="inline-chat-body" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;margin-bottom:12px;"></div>
+    <div class="panel" style="margin-top:28px;">
+      <h3>Ask before you write in <span class="path">helpdesk · answers from this profile</span></h3>
+      <div id="inline-chat-body" class="inline-chat-body"></div>
       <div class="chat-input-row" style="padding:0;border:none;">
         <input id="inline-chat-input" placeholder="Ask about ${f.name.split(' ').slice(-1)[0]}'s courses, office hours…" onkeydown="if(event.key==='Enter'){sendInlineChat('${f.id}');}">
         <button onclick="sendInlineChat('${f.id}')" aria-label="Send">&#10148;</button>
@@ -665,7 +781,7 @@ function profileTabHTML(f, tab, isOwner){
     </div>`;
   }
   return `<div class="prose">${f.about.map(p=>`<p>${p}</p>`).join('')}</div>
-    <div class="kv" style="margin-top:20px;max-width:520px;">
+    <div class="kv" style="margin-top:36px;max-width:640px;">
       <div class="kv-row"><div class="kv-key">Position</div><div class="kv-val">${f.role}</div></div>
       <div class="kv-row"><div class="kv-key">Ph.D.</div><div class="kv-val">${f.phd}</div></div>
       <div class="kv-row"><div class="kv-key">Joined dept.</div><div class="kv-val">${f.joined}</div></div>
@@ -726,7 +842,7 @@ function answerMCQ(uid, chosen, correct){
 function revealQB(uid){ trackProgress('qb', uid); const el=document.getElementById('qba-'+uid); if(el) el.classList.remove('hidden'); }
 
 function questionBankTabHTML(f, isOwner){
-  const topicsHTML = (f.questionBank.topics||[]).length ? f.questionBank.topics.map(t=>`<span class="chip" style="background:var(--primary-soft);color:var(--primary);border-color:transparent;">${t.name}${t.tag?' · '+t.tag:''}</span>`).join('') : '<span class="empty" style="border:none;padding:6px 0;display:inline-block;">No highlighted topics yet.</span>';
+  const topicsHTML = (f.questionBank.topics||[]).length ? f.questionBank.topics.map(t=>`<span class="chip${t.tag==='high-yield'?' chip--hot':''}">${t.name}${t.tag?' · '+t.tag:''}</span>`).join('') : '<span style="color:var(--ink-3);font-size:14.5px;">No highlighted topics yet.</span>';
   const allItems = [...(f.questionBank.items||[]).map(it=>({...it})), ...(f.customQB||[]).map(it=>({...it}))];
   const bankHTML = allItems.length ? allItems.map(it=>qbCardHTML(it, 'qb'+(qbUidCounter++))).join('') : '<div class="empty">No questions in the bank yet.</div>';
   const ownerForm = isOwner ? `
@@ -743,15 +859,16 @@ function questionBankTabHTML(f, isOwner){
     </div>` : '';
   return `
     <h4 class="mini-head">Most important topics</h4>
-    <div class="chip-row" style="margin-bottom:22px;">${topicsHTML}</div>
-    <div class="match-input-wrap" style="margin-bottom:26px;">
-      <h3 style="margin-bottom:10px;">Generate practice questions for me ✦</h3>
-      <div class="field" style="margin-bottom:10px;"><input id="qb-ai-topic" placeholder="e.g. Boundary value analysis, COCOMO, UML diagrams…"></div>
-      <button class="btn btn-ai" onclick="generateQB('${f.id}')">Generate ✦</button>
-      <div id="qb-ai-results" style="margin-top:16px;display:flex;flex-direction:column;gap:12px;"></div>
+    <div class="chip-row" style="margin-bottom:32px;">${topicsHTML}</div>
+    <div class="match-input-wrap match-input-wrap--inline">
+      <span class="kicker">Practice generator</span>
+      <h3>Generate practice questions for me</h3>
+      <div class="field"><label for="qb-ai-topic">Topic</label><input id="qb-ai-topic" placeholder="e.g. Boundary value analysis, COCOMO, UML diagrams…" onkeydown="if(event.key==='Enter')generateQB('${f.id}')"></div>
+      <button class="btn btn-accent btn-split" onclick="generateQB('${f.id}')"><span>Generate</span>${ICON.arrow}</button>
+      <div id="qb-ai-results" class="qb-list" style="margin-top:20px;"></div>
     </div>
     <h4 class="mini-head">Question bank</h4>
-    <div style="display:flex;flex-direction:column;gap:12px;">${bankHTML}</div>
+    <div class="qb-list">${bankHTML}</div>
     ${ownerForm}
   `;
 }
@@ -816,16 +933,16 @@ function renderMessages(){
   if(isFaculty){
     const f = currentFaculty();
     document.getElementById('msg-sub').textContent = `Everything students and colleagues have sent to ${f.name} — synced live.`;
-    document.getElementById('msg-body').innerHTML = f.messages.length ? f.messages.slice().reverse().map(m=>`
-      <div class="msg-item"><div class="mi-top"><span>${m.from} · ${m.date}</span><span class="msg-reason">${m.reason}</span></div>
-        <div class="mi-subj">${m.subject}</div><div class="mi-body">${m.body}</div></div>`).join('') : '<div class="empty">No messages yet.</div>';
+    document.getElementById('msg-body').innerHTML = f.messages.length ? '<div class="msg-list">' + f.messages.slice().reverse().map((m,i)=>`
+      <div class="msg-item"><span class="msg-num">${pad2(i+1)}</span><div><div class="mi-top"><span>${esc(m.from)} · ${esc(m.date)}</span><span class="msg-reason">${esc(m.reason)}</span></div>
+        <div class="mi-subj">${esc(m.subject)}</div><div class="mi-body">${esc(m.body)}</div></div></div>`).join('') + '</div>' : '<div class="empty">No messages yet — students who reach out from your Contact tab will land here, live.</div>';
   } else {
     document.getElementById('msg-sub').textContent = 'Messages you send from a faculty profile land here too.';
     const mine = [];
     FACULTY.forEach(f=> f.messages.forEach(m=>{ if(m.from===state.name) mine.push({...m, to:f.name}); }));
-    document.getElementById('msg-body').innerHTML = mine.length ? mine.slice().reverse().map(m=>`
-      <div class="msg-item"><div class="mi-top"><span>To ${m.to} · ${m.date}</span><span class="msg-reason">${m.reason}</span></div>
-        <div class="mi-subj">${m.subject}</div><div class="mi-body">${m.body}</div></div>`).join('') : '<div class="empty">You haven\'t contacted any faculty yet — visit a profile\'s Contact tab to send one.</div>';
+    document.getElementById('msg-body').innerHTML = mine.length ? '<div class="msg-list">' + mine.slice().reverse().map((m,i)=>`
+      <div class="msg-item"><span class="msg-num">${pad2(i+1)}</span><div><div class="mi-top"><span>To ${esc(m.to)} · ${esc(m.date)}</span><span class="msg-reason">${esc(m.reason)}</span></div>
+        <div class="mi-subj">${esc(m.subject)}</div><div class="mi-body">${esc(m.body)}</div></div></div>`).join('') + '</div>' : '<div class="empty">You haven\'t contacted any faculty yet — visit a profile\'s Contact tab to send one. <button class="btn btn-ghost btn-sm" onclick="navigate(\'directory\')">Browse the directory</button></div>';
   }
 }
 
@@ -865,9 +982,13 @@ function renderMatchResults(matches){
   const resultsEl = document.getElementById('match-results');
   const valid = matches.filter(m=>findFaculty(m.id));
   if(!valid.length){ resultsEl.innerHTML='<div class="empty">No matches found — try describing your interest differently.</div>'; return; }
-  resultsEl.innerHTML = valid.map(m=>{
+  resultsEl.innerHTML = valid.map((m,i)=>{
     const f = findFaculty(m.id);
-    return `<div class="match-card"><div class="match-head"><span class="fac-name">${f.name}</span><span class="fac-role">${f.dept}</span></div><p>${m.reason}</p><button class="btn btn-ghost" onclick="navigate('faculty/${f.id}')">Visit her page →</button></div>`;
+    return `<div class="match-card" style="--dept-color:${f.deptColor};animation-delay:${i*0.08}s">
+      <span class="match-num">${pad2(i+1)}</span>
+      <div class="match-thumb">${f.photo?`<img src="${f.photo}" alt="">`:f.cover?`<img src="${f.cover}" alt="">`:initials(f.name)}</div>
+      <div><div class="match-head"><span class="fac-role">${esc(f.dept)}</span><span class="fac-name">${esc(f.name)}</span></div><p>${esc(m.reason)}</p></div>
+      <button class="btn btn-ghost btn-sm" onclick="navigate('faculty/${f.id}')">View profile ${ICON.arrow}</button></div>`;
   }).join('');
 }
 

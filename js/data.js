@@ -4,7 +4,7 @@ const KOMAL_PHOTO = "assets/images/komal-bharti.jpg";
 
 const FACULTY = [
 {
-  id:'komal-bharti', featured:true, dept:'Computer Science & Engineering', deptColor:'#8172FF', photo: KOMAL_PHOTO,
+  id:'komal-bharti', featured:true, dept:'Computer Science & Engineering', deptColor:'var(--green)', photo: KOMAL_PHOTO,
   name:'Komal Bharti', role:'Assistant Professor, Software Engineering',
   tagline:'Studying how software teams build reliable systems, and how tools can make that easier.',
   office:'Block C, Room 214', officeHours:'Tue & Thu, 2:00–4:00 PM', email:'komal.bharti@thapar.edu',
@@ -95,7 +95,7 @@ const FACULTY = [
   messages:[]
 },
 {
-  id:'arjun-mehta', dept:'Mechanical Engineering', deptColor:'#3FE0A8', demo:true,
+  id:'arjun-mehta', dept:'Mechanical Engineering', deptColor:'#B5512F', demo:true,
   name:'Arjun Mehta', role:'Associate Professor, Thermal & Fluid Systems',
   tagline:'Making campus energy systems and internal-combustion research a little more efficient.',
   office:'Block E, Room 118', officeHours:'Mon & Wed, 11:00–1:00 PM', email:'arjun.mehta@thapar.edu',
@@ -127,7 +127,7 @@ const FACULTY = [
   messages:[]
 },
 {
-  id:'neha-kapoor', dept:'Electronics & Communication', deptColor:'#FF6E58', demo:true,
+  id:'neha-kapoor', dept:'Electronics & Communication', deptColor:'#3E6A8A', demo:true,
   name:'Neha Kapoor', role:'Assistant Professor, VLSI & Embedded Systems',
   tagline:'Squeezing more out of silicon — low-power chip design for student and industry projects.',
   office:'Block D, Room 302', officeHours:'Wed & Fri, 3:00–5:00 PM', email:'neha.kapoor@thapar.edu',
@@ -159,7 +159,7 @@ const FACULTY = [
   messages:[]
 },
 {
-  id:'rajiv-anand', dept:'Chemical Engineering', deptColor:'#FFC24E', demo:true,
+  id:'rajiv-anand', dept:'Chemical Engineering', deptColor:'#8A6A22', demo:true,
   name:'Rajiv Anand', role:'Professor, Process Safety & Design',
   tagline:'Keeping industrial processes — and the people who run them — safe by design.',
   office:'Block F, Room 210', officeHours:'Tue & Thu, 10:00 AM–12:00 PM', email:'rajiv.anand@thapar.edu',

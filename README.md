@@ -4,7 +4,8 @@ A web platform for Thapar Institute that helps students find the right faculty m
 everything that faculty member has shared, in one place.
 
 **Team:** Vani Tripathi (1024160073) · Agrim Mittal (1024160068) · Shriyam Bhardwaj (1024160062)
-**Live:** https://faculty-connect-mu.vercel.app/
+**Live:** https://facultyconnect-five.vercel.app/  
+**Previous version:** https://faculty-connect-mu.vercel.app/
 
 ## Features
 - Faculty directory with search and department filters
@@ -19,9 +20,11 @@ everything that faculty member has shared, in one place.
 ```
 facultyconnect/
 ├── index.html                 # page markup (login + app shell)
-├── css/style.css              # all styles
+├── css/                       # style.css (base), motion.css (cube + 3D effects), intro.css (login intro), polish.css (header, cube lighting, feed)
 ├── js/data.js                 # seed data: faculty, courses, assignments, uploads
 ├── js/app.js                  # app logic: router, views, timeline, sync, AI
+├── js/fx.js                   # campus navigation cube, tilt, flip-in effects, sounds
+├── js/intro.js                # graduation-cap login intro
 ├── assets/images/             # images (faculty photo)
 ├── vercel.json                # Vercel static hosting config
 └── docs/
