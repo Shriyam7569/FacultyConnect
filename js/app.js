@@ -1116,7 +1116,7 @@ function renderMessages(prefillId){
         <div class="field"><label for="m-reason">Reason</label><select id="m-reason">${MSG_REASONS.map(r=>`<option>${r}</option>`).join('')}</select></div>
         <div class="field"><label for="m-subject">Subject</label><input id="m-subject" maxlength="120" required></div>
         <div class="field"><label for="m-body">Message</label><textarea id="m-body" rows="5" maxlength="1500" required></textarea></div>
-        ${attPickerHTML('msg')}
+        ${attPickerHTML('msgatt')}
         <button class="btn btn-accent btn-split" type="submit"><span>Send message</span>${ICON.arrow}</button>
       </form>
       <section class="msg-history">
@@ -1171,7 +1171,7 @@ function sendMessage(e){
   const body = document.getElementById('m-body').value.trim();
   if(!subject || !body) return;
   const now = new Date();
-  const base = {reason, subject, body, attach:takeAtt('msg'), date:fmtWhen(now), ts:now.toISOString()};
+  const base = {reason, subject, body, attach:takeAtt('msgatt'), date:fmtWhen(now), ts:now.toISOString()};
   let toast;
   if(isFaculty && toVal==='__student'){
     const name = document.getElementById('m-student').value.trim();

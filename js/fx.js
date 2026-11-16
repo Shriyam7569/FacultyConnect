@@ -272,7 +272,22 @@ function prepFlips(root){
   if(REDUCED || !flipIO || !root.querySelectorAll) return;
   (root.matches && root.matches(FLIP_SEL) ? [root] : []).concat([...root.querySelectorAll(FLIP_SEL)])
     .forEach(el=>{ if(el.dataset.flip) return; el.dataset.flip = '1'; el.classList.add('flip-pre'); flipIO.observe(el); });
+  clearTimeout(flipSweepTimer); flipSweepTimer = setTimeout(flipSweep, 900);
 }
+/* safety net: the observer can miss rows that are rendered while already on screen
+   (e.g. a freshly sent message), which left them invisible. Reveal anything on screen. */
+let flipSweepTimer = null, flipSweepRAF = 0;
+function flipSweep(){
+  document.querySelectorAll('.flip-pre:not(.flip-done)').forEach(el=>{
+    const r = el.getBoundingClientRect();
+    if(r.bottom > 0 && r.top < innerHeight){
+      if(flipIO) flipIO.unobserve(el);
+      el.classList.add('flip-done');
+      setTimeout(()=> el.classList.remove('flip-pre','flip-done'), 700);
+    }
+  });
+}
+addEventListener('scroll', ()=>{ if(flipSweepRAF) return; flipSweepRAF = requestAnimationFrame(()=>{ flipSweepRAF = 0; clearTimeout(flipSweepTimer); flipSweepTimer = setTimeout(flipSweep, 350); }); }, {passive:true});
 
 /* =============================== HEADINGS =============================== */
 // extruded headings lean toward the pointer
