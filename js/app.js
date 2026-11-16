@@ -5,11 +5,12 @@ try{ const saved = JSON.parse(localStorage.getItem('fc_state')||'null'); if(save
 function persist(){ try{ localStorage.setItem('fc_state', JSON.stringify(state)); }catch(e){} }
 try{
   const savedData = JSON.parse(localStorage.getItem('fc_data')||'null');
-  if(savedData){ savedData.forEach(d=>{ const f=FACULTY.find(x=>x.id===d.id); if(f){ f.uploads=d.uploads||f.uploads; f.messages=d.messages||f.messages; f.customQB=d.customQB||f.customQB||[]; } }); }
+  if(savedData){ savedData.forEach(d=>{ const f=FACULTY.find(x=>x.id===d.id); if(f){ f.uploads=d.uploads||f.uploads; f.messages=d.messages||f.messages; f.customQB=d.customQB||f.customQB||[]; f.outbox=d.outbox||f.outbox||[]; f.userAnn=d.userAnn||f.userAnn||[]; } }); }
 }catch(e){}
 FACULTY.forEach(f=> (f.uploads||[]).forEach(u=>{ if(!u.date || u.date==='just now') u.date = new Date().toISOString(); }));
+const noAtt = m => m.attach ? {...m, attach:m.attach.map(x=>({name:x.name,type:x.type,size:x.size}))} : m;
 function persistData(){
-  const snap = strip => JSON.stringify(FACULTY.map(f=>({id:f.id, uploads: strip ? f.uploads.map(u=>{ const c={...u}; delete c.fileData; return c; }) : f.uploads, messages:f.messages, customQB:f.customQB||[]})));
+  const snap = strip => JSON.stringify(FACULTY.map(f=>({id:f.id, uploads: strip ? f.uploads.map(u=>{ const c={...u}; delete c.fileData; return c; }) : f.uploads, messages:strip?f.messages.map(noAtt):f.messages, customQB:f.customQB||[], outbox:strip?(f.outbox||[]).map(noAtt):(f.outbox||[]), userAnn:strip?(f.userAnn||[]).map(noAtt):(f.userAnn||[])})));
   try{ localStorage.setItem('fc_data', snap(false)); }
   catch(e){ try{ localStorage.setItem('fc_data', snap(true)); }catch(e2){} }
 }
@@ -41,7 +42,7 @@ async function initCapabilities(){
 function dbSyncFaculty(faculty){
   persistData();
   if(!dbCap) return;
-  dbCap.doc('faculty/'+faculty.id).set({uploads:faculty.uploads.map(u=>{ const c={...u}; delete c.fileData; return c; }), messages:faculty.messages, customQB:faculty.customQB||[]}).catch(()=>{
+  dbCap.doc('faculty/'+faculty.id).set({uploads:faculty.uploads.map(u=>{ const c={...u}; delete c.fileData; return c; }), messages:faculty.messages, customQB:faculty.customQB||[], outbox:faculty.outbox||[], userAnn:faculty.userAnn||[]}).catch(()=>{
     showToast('Could not sync to the shared database — saved on this device only.');
   });
 }
@@ -49,7 +50,7 @@ function snapExists(snap){ return !!snap && (typeof snap.exists==='function' ? s
 function subscribeAllFaculty(){
   FACULTY.forEach(f=>{
     const ref = dbCap.doc('faculty/'+f.id);
-    ref.get().then(snap=>{ if(!snapExists(snap)){ ref.set({uploads:f.uploads.map(u=>{ const c={...u}; delete c.fileData; return c; }), messages:f.messages, customQB:f.customQB||[]}).catch(()=>{}); } }).catch(()=>{});
+    ref.get().then(snap=>{ if(!snapExists(snap)){ ref.set({uploads:f.uploads.map(u=>{ const c={...u}; delete c.fileData; return c; }), messages:f.messages, customQB:f.customQB||[], outbox:f.outbox||[], userAnn:f.userAnn||[]}).catch(()=>{}); } }).catch(()=>{});
     f._msgCount = f.messages.length;
     f._dbReady = false;
     ref.onSnapshot(snap=>{
@@ -57,6 +58,8 @@ function subscribeAllFaculty(){
         const d = snap.data();
         if(Array.isArray(d.uploads)) f.uploads = d.uploads;
         if(Array.isArray(d.customQB)) f.customQB = d.customQB;
+        if(Array.isArray(d.outbox)) f.outbox = d.outbox;
+        if(Array.isArray(d.userAnn)) f.userAnn = d.userAnn;
         if(Array.isArray(d.messages)){
           if(f._dbReady && d.messages.length > f._msgCount && state.role==='faculty' && state.managingId===f.id){
             showToast('New message for '+f.name+' — check Messages.');
@@ -75,7 +78,7 @@ function onFacultyDataChanged(f){
   const hash = location.hash.replace('#/','');
   if(hash==='dashboard') renderDashboard();
   if(hash==='faculty/'+f.id || hash.indexOf('faculty/'+f.id+'/')===0) renderProfile(f.id, hash.split('/')[2]||'about');
-  if(hash==='messages') renderMessages();
+  if(hash.split('/')[0]==='messages') renderMessageHistory();
 }
 function updateBellBadge(){
   const f = currentFaculty();
@@ -191,17 +194,56 @@ function setupScrollReveal(){
 function initials(name){ const first = String(name||'').trim().replace(/^(Dr\.?|Prof\.?)\s+/i,''); return (first.charAt(0)||'?').toUpperCase(); }
 /* line icons used in rendered templates */
 const ICON = {
+  mega:'<svg class="ic" viewBox="0 0 24 24"><path d="M3 10v4h3l8 4V6L6 10z"/><path d="M17 9a4 4 0 010 6"/><path d="M20 6.5a8 8 0 010 11"/></svg>',
   arrow:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg>',
   chev:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
 };
-const FEED_LABEL = {opening:'Open role', paper:'Research', course:'Course', note:'Notice', msg:'Message'};
+const FEED_LABEL = {opening:'Open role', paper:'Research', course:'Course', note:'Notice', msg:'Message', exam:'Exam / datesheet', eval:'Evaluation'};
 /* each feed category has its own identity: icon, action word (colour comes from CSS) */
 const FEED_KIND = {
   opening:{cta:'Apply',       icon:'<path d="M3 8h18v11H3z"/><path d="M8 8V5h8v3"/><path d="M3 13h18"/>'},
   paper:  {cta:'Read',        icon:'<path d="M9 3h6"/><path d="M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/><path d="M7.5 15h9"/>'},
   course: {cta:'Open course', icon:'<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5"/><path d="M9 8h6"/>'},
-  note:   {cta:'Details',     icon:'<path d="M4 10v4"/><path d="M4 11l11-5v12L4 13"/><path d="M15 9a3 3 0 010 6"/><path d="M7 14v4h3"/>'}
+  note:   {cta:'Details',     icon:'<path d="M4 10v4"/><path d="M4 11l11-5v12L4 13"/><path d="M15 9a3 3 0 010 6"/><path d="M7 14v4h3"/>'},
+  exam:   {cta:'View',        icon:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'},
+  eval:   {cta:'View',        icon:'<path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2"/><path d="M9 14l2 2 4-4"/>'}
 };
+/* ---- attachments (pdf / word / images) usable in announcements and messages ---- */
+const ATT = {};   // picker id -> [{name,type,size,data}]
+const ATT_MAX = 1.5 * 1024 * 1024, ATT_COUNT = 3;
+function fmtSize(n){ return n>1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(n/1024))+' KB'; }
+function attPickerHTML(pid){
+  ATT[pid] = [];
+  return `<div class="field att-field"><label>Attachments <span style="opacity:.6">(optional)</span></label>
+    <label class="att-drop" for="${pid}-file"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.5l-8.5 8.5a5.5 5.5 0 01-7.8-7.8l9-9a3.7 3.7 0 015.2 5.2l-9 9a1.8 1.8 0 01-2.6-2.6l8.3-8.3"/></svg><span>Attach PDF, Word or image <em>from your device or Drive</em></span></label>
+    <input type="file" id="${pid}-file" class="att-input" multiple accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*" onchange="pickFiles('${pid}',this)">
+    <div class="att-list" id="${pid}-list"></div></div>`;
+}
+function pickFiles(pid, input){
+  const list = ATT[pid] || (ATT[pid]=[]);
+  [...input.files].forEach(file=>{
+    if(list.length>=ATT_COUNT){ showToast('You can attach up to '+ATT_COUNT+' files.'); return; }
+    if(file.size>ATT_MAX){ showToast(file.name+' is over '+fmtSize(ATT_MAX)+' — please attach a smaller file.'); return; }
+    const r = new FileReader();
+    r.onload = ()=>{ list.push({name:file.name, type:file.type||'', size:file.size, data:r.result}); drawAtt(pid); };
+    r.readAsDataURL(file);
+  });
+  input.value = '';
+}
+function drawAtt(pid){
+  const el = document.getElementById(pid+'-list'); if(!el) return;
+  el.innerHTML = (ATT[pid]||[]).map((f,i)=>`<span class="att-chip"><b>${esc(f.name)}</b><i>${fmtSize(f.size)}</i><button type="button" aria-label="Remove" onclick="dropAtt('${pid}',${i})">×</button></span>`).join('');
+}
+function dropAtt(pid,i){ (ATT[pid]||[]).splice(i,1); drawAtt(pid); }
+function takeAtt(pid){ const l = (ATT[pid]||[]).slice(); ATT[pid]=[]; drawAtt(pid); return l; }
+function attView(list){
+  if(!list || !list.length) return '';
+  return '<div class="att-view">' + list.map(f=> /^image\//.test(f.type) && f.data
+    ? `<a class="att-img" href="${f.data}" download="${esc(f.name)}" title="Download ${esc(f.name)}"><img src="${f.data}" alt="${esc(f.name)}"><span>${esc(f.name)}</span></a>`
+    : `<a class="att-file" href="${f.data||'#'}" download="${esc(f.name)}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg><b>${esc(f.name)}</b><i>${fmtSize(f.size)}</i></a>`).join('') + '</div>';
+}
+function fmtWhen(d){ d = new Date(d); let h=d.getHours(); const ap=h>=12?'PM':'AM'; h=h%12||12; return d.getDate()+' '+MONTH_FULL[d.getMonth()].slice(0,3)+', '+h+':'+pad2(d.getMinutes())+' '+ap; }
+function whenOf(m){ return m.ts ? fmtWhen(m.ts) : (m.date||''); }
 function roleTitle(f){ return f.role.split(',')[0].trim(); }
 function roleFocus(f){ const p = f.role.split(','); return p.length>1 ? p.slice(1).join(',').trim() : f.dept; }
 function pad2(n){ return String(n).padStart(2,'0'); }
@@ -248,7 +290,7 @@ function doRenderRoute(){
     renderProfile(parts[1], parts[2]||'about');
     document.getElementById('view-profile').classList.remove('hidden');
   } else if(parts[0]==='messages'){
-    renderMessages();
+    renderMessages(parts[1]);
     document.getElementById('view-messages').classList.remove('hidden');
     document.querySelector('[data-route="messages"]').classList.add('active');
   } else if(parts[0]==='directory'){
@@ -283,13 +325,86 @@ function boot(){
   doRenderRoute();
   updatePresence();
 }
+/* ---- announcements: faculty-posted (persisted) + seeded ones + campus notices ---- */
+let ANN = [];
+function buildAnnList(){
+  const posted = [], seeded = [];
+  FACULTY.forEach(f=>{
+    (f.userAnn||[]).forEach(a=> posted.push({who:f.name, id:f.id, ...a, posted:true}));
+    f.announcements.forEach((a,i)=> seeded.push({who:f.name, id:f.id, title:a.text, ...a, text:'', seedText:a.text}));
+  });
+  posted.sort((a,b)=> String(b.ts).localeCompare(String(a.ts)));
+  const campus = CAMPUS_NOTICES.map(n=>({who:null, id:null, title:n.text, tag:n.tag, text:'', date:'Campus notice'}));
+  ANN = [...posted, ...seeded, ...campus];
+  ANN.forEach((a,i)=> a.idx = i);
+  return ANN;
+}
+const annTitle = a => a.title || a.seedText || a.text;
 function buildAnnouncementTrack(){
-  const items = [];
-  FACULTY.forEach(f=>{ f.announcements.slice(0,2).forEach(a=> items.push({who:f.name, ...a})); });
-  CAMPUS_NOTICES.forEach(n=> items.push({who:null, ...n}));
-  const html = items.map(i=>`<span class="ab-item ab--${FEED_KIND[i.tag]?i.tag:'note'}"><i class="ab-kind">${i.who ? (FEED_LABEL[i.tag]||'Notice') : 'Campus'}</i>${i.who?`<b>${esc(i.who)}</b>`:''}<span>${esc(i.text)}</span></span>`).join('');
+  buildAnnList();
+  const posted = ANN.filter(a=>a.posted);
+  const rest = ANN.filter(a=>!a.posted);
+  const seen = {}; const items = [...posted];
+  rest.forEach(a=>{ if(!a.id){ items.push(a); return; } seen[a.id]=(seen[a.id]||0)+1; if(seen[a.id]<=2) items.push(a); });
+  const html = items.map(i=>`<span class="ab-item ab--${FEED_KIND[i.tag]?i.tag:'note'}" role="button" tabindex="0" title="Open announcement" onclick="openAnnouncement(${i.idx})" onkeydown="if(event.key==='Enter')openAnnouncement(${i.idx})"><i class="ab-kind">${i.who ? (FEED_LABEL[i.tag]||'Notice') : 'Campus'}</i>${i.who?`<b>${esc(i.who)}</b>`:''}<span>${esc(annTitle(i))}${i.when?' · '+esc(i.when):''}</span></span>`).join('');
   const track = document.getElementById('announce-track');
   if(track) track.innerHTML = html + html;
+  const pb = document.getElementById('ab-post'); if(pb) pb.classList.toggle('hidden', state.role!=='faculty');
+}
+function openAnnouncement(idx){
+  const a = ANN[idx]; if(!a) return;
+  const kind = FEED_KIND[a.tag] ? a.tag : 'note';
+  const details = a.posted ? a.text : '';
+  const stamp = a.posted ? 'Posted '+whenOf(a) : a.date;
+  showModal(`
+    <span class="ann-chip ann--${kind}">${a.who ? (FEED_LABEL[a.tag]||'Notice') : 'Campus notice'}</span>
+    <h3>${esc(annTitle(a))}</h3>
+    ${a.when?`<div class="ann-when"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${FEED_KIND.exam.icon}</svg>${esc(a.when)}</div>`:''}
+    ${details?`<p class="ann-body">${esc(details).replace(/\n/g,'<br>')}</p>`:''}
+    ${a.posted?attView(a.attach):''}
+    <div class="ann-meta">${a.who?`<b>${esc(a.who)}</b> · `:''}${esc(stamp)}</div>
+    <div class="modal-actions">
+      ${a.id?`<button class="btn btn-accent btn-sm" onclick="closeModal();navigate('faculty/${a.id}')">View profile</button>`:''}
+      ${a.id && state.role==='student'?`<button class="btn btn-ghost btn-sm" onclick="closeModal();navigate('messages/${a.id}')">Message</button>`:''}
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button>
+    </div>`);
+}
+function openPostAnnouncement(){
+  const f = currentFaculty(); if(!f) return;
+  const mine = (f.userAnn||[]).slice().sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
+  showModal(`
+    <span class="ann-chip ann--note">Campus wire</span>
+    <h3>Add an announcement</h3>
+    <form id="ann-form" class="ann-form">
+      <div class="field"><label for="ann-tag">Category</label>
+        <select id="ann-tag"><option value="exam">Exam / datesheet</option><option value="eval">Evaluation / marks</option><option value="course">Course update</option><option value="note" selected>Notice</option><option value="opening">Open role</option></select></div>
+      <div class="field"><label for="ann-title">Headline</label><input id="ann-title" maxlength="120" placeholder="e.g. CSE452 mid-sem datesheet released" required></div>
+      <div class="field"><label for="ann-when">Date / deadline <span style="opacity:.6">(optional)</span></label><input id="ann-when" maxlength="60" placeholder="e.g. 24 Nov, 10:00 AM · Hall B2"></div>
+      <div class="field"><label for="ann-text">Details <span style="opacity:.6">(optional)</span></label><textarea id="ann-text" rows="4" maxlength="800" placeholder="Syllabus, venue, what to bring…"></textarea></div>
+      ${attPickerHTML('ann')}
+      <div class="modal-actions"><button class="btn btn-accent" type="submit">Add announcement</button><button class="btn btn-ghost" type="button" onclick="closeModal()">Cancel</button></div>
+    </form>
+    ${mine.length?`<h4 class="mini-head" style="margin-top:26px;">Your posted announcements</h4><div class="ann-mine">${mine.map(a=>`<div class="ann-mine-row"><span><b>${esc(a.title)}</b><i>${esc(whenOf(a))}</i></span><button class="btn btn-ghost btn-sm" type="button" onclick="deleteAnnouncement('${a.aid}')">Remove</button></div>`).join('')}</div>`:''}`);
+  document.getElementById('ann-form').onsubmit = function(e){
+    e.preventDefault();
+    const title = document.getElementById('ann-title').value.trim();
+    if(!title) return;
+    const now = new Date();
+    f.userAnn = f.userAnn || [];
+    f.userAnn.push({aid:'a'+now.getTime().toString(36), tag:document.getElementById('ann-tag').value, title, when:document.getElementById('ann-when').value.trim(), text:document.getElementById('ann-text').value.trim(), attach:takeAtt('ann'), date:fmtWhen(now), ts:now.toISOString()});
+    dbSyncFaculty(f);
+    closeModal();
+    showToast('Added — it is live on the Campus wire.');
+    if(location.hash.replace('#/','')==='dashboard') renderDashboard(); else navigate('dashboard');
+  };
+}
+function deleteAnnouncement(aid){
+  const f = currentFaculty(); if(!f) return;
+  f.userAnn = (f.userAnn||[]).filter(a=>a.aid!==aid);
+  dbSyncFaculty(f);
+  showToast('Announcement removed.');
+  if(location.hash.replace('#/','')==='dashboard') renderDashboard();
+  openPostAnnouncement();
 }
 
 /* ============================ DASHBOARD ============================ */
@@ -329,6 +444,7 @@ function renderDashboard(){
   document.getElementById('dash-sub').textContent = isFaculty ? 'Post updates, upload material, and see who has reached out — live, across every device.' : 'The right people, context, and opportunities for the work you want to do.';
   document.getElementById('dash-actions').innerHTML = isFaculty
     ? `<button class="btn btn-accent btn-split" onclick="document.getElementById('work-form').scrollIntoView({behavior:'smooth',block:'start'})"><span>Add to your timeline</span>${ICON.arrow}</button>
+       <button class="btn btn-ghost" onclick="openPostAnnouncement()"><span class="mega" aria-hidden="true">${ICON.mega}</span>Add announcement</button>
        <button class="btn btn-ghost" onclick="navigate('faculty/${f.id}')">View your profile</button>`
     : `<button class="btn btn-accent btn-split" onclick="navigate('directory')"><span>Explore the directory</span>${ICON.arrow}</button>
        <button class="btn btn-ghost" onclick="navigate('match')">Find my faculty</button>`;
@@ -352,14 +468,13 @@ function renderDashboard(){
   tiles.forEach((t,i)=>{ if(t.n!=null) animateCount(document.getElementById('stat-num-'+i), t.n); else document.getElementById('stat-num-'+i).textContent='—'; });
 
   const feed = document.getElementById('dash-feed');
-  const allAnn = [];
-  FACULTY.forEach(fac=> fac.announcements.forEach(a=> allAnn.push({who:fac.name, id:fac.id, ...a})));
+  const allAnn = ANN.filter(a=>a.id);
   feed.innerHTML = allAnn.length ? allAnn.slice(0,7).map((a,i)=>`
-    <div class="feed-row feed--${FEED_KIND[a.tag]?a.tag:'note'}" role="link" tabindex="0" onclick="navigate('faculty/${a.id}')" onkeydown="if(event.key==='Enter')navigate('faculty/${a.id}')">
+    <div class="feed-row feed--${FEED_KIND[a.tag]?a.tag:'note'}" role="button" tabindex="0" onclick="openAnnouncement(${a.idx})" onkeydown="if(event.key==='Enter')openAnnouncement(${a.idx})">
       <span class="feed-badge" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24">${(FEED_KIND[a.tag]||FEED_KIND.note).icon}</svg><i>${pad2(i+1)}</i></span>
       <div><span class="feed-tagline">${FEED_LABEL[a.tag]||a.tag}${a.tag==='opening'?'<em class="feed-live">Open now</em>':''}</span>
-        <div class="feed-title">${esc(a.text)}</div>
-        <div class="feed-meta"><span>${esc(a.who)}</span><span class="dot"></span><span>${esc(a.date)}</span></div></div>
+        <div class="feed-title">${esc(annTitle(a))}</div>
+        <div class="feed-meta"><span>${esc(a.who)}</span><span class="dot"></span><span>${esc(a.posted?(a.when||whenOf(a)):a.date)}</span></div></div>
       <span class="feed-arrow"><span class="feed-cta">${(FEED_KIND[a.tag]||FEED_KIND.note).cta}</span>${ICON.arrow}</span>
     </div>`).join('') : '<div class="empty" style="margin-top:24px;">Nothing posted yet — faculty updates will appear here as they come in.</div>';
 
@@ -759,6 +874,7 @@ function profileTabHTML(f, tab, isOwner){
           </div>
           <div class="field"><label for="c-subject">Subject</label><input id="c-subject" required placeholder="What's this about?"></div>
           <div class="field"><label for="c-message">Message</label><textarea id="c-message" rows="4" required placeholder="Write your message…"></textarea></div>
+          ${attPickerHTML('con')}
           <button class="btn btn-dark btn-block btn-split" type="submit"><span>Send — ${f.name.split(' ').slice(-1)[0]} will be notified</span>${ICON.arrow}</button>
         </form>
       </div>
@@ -805,10 +921,10 @@ function wireContactForm(f){
     const subject = document.getElementById('c-subject').value.trim();
     const message = document.getElementById('c-message').value.trim();
     if(!subject || !message) return;
-    f.messages.push({from: state.name || 'A student', reason, subject, body:message, date:'just now'});
+    f.messages.push({from: state.name || 'A student', fromRole:'student', reason, subject, body:message, attach:takeAtt('con'), date:fmtWhen(new Date()), ts:new Date().toISOString()});
     dbSyncFaculty(f);
     showToast(`Sent — ${f.name} has been notified.`);
-    form.reset();
+    form.reset(); drawAtt('con');
   };
 }
 
@@ -927,23 +1043,118 @@ function keywordQB(f, topic){
 }
 
 /* ============================ MESSAGES ============================ */
-function renderMessages(){
-  const isFaculty = state.role==='faculty';
-  document.getElementById('msg-title').textContent = isFaculty ? 'Your messages' : 'Sent messages';
-  if(isFaculty){
-    const f = currentFaculty();
-    document.getElementById('msg-sub').textContent = `Everything students and colleagues have sent to ${f.name} — synced live.`;
-    document.getElementById('msg-body').innerHTML = f.messages.length ? '<div class="msg-list">' + f.messages.slice().reverse().map((m,i)=>`
-      <div class="msg-item"><span class="msg-num">${pad2(i+1)}</span><div><div class="mi-top"><span>${esc(m.from)} · ${esc(m.date)}</span><span class="msg-reason">${esc(m.reason)}</span></div>
-        <div class="mi-subj">${esc(m.subject)}</div><div class="mi-body">${esc(m.body)}</div></div></div>`).join('') + '</div>' : '<div class="empty">No messages yet — students who reach out from your Contact tab will land here, live.</div>';
+/* Messages: compose + history, written for the viewer's role (student or faculty) */
+let msgTab = null, msgInbox = [];
+const MSG_REASONS = ['Academic query','Project inquiry','Meeting request','Course update','Campus-wide concern'];
+function sameName(a,b){ return String(a||'').trim().toLowerCase() === String(b||'').trim().toLowerCase(); }
+function messageLists(){
+  const isFaculty = state.role==='faculty', me = currentFaculty();
+  let inbox = [], sent = [];
+  if(isFaculty && me){
+    inbox = me.messages.map(m=>({...m, who:m.from, dir:'in', replyTo:m.fromId ? {kind:'fac', id:m.fromId} : {kind:'stu', name:m.from}}));
+    (me.outbox||[]).forEach(m=> sent.push({...m, who:m.to+' (student)', dir:'out'}));
+    FACULTY.forEach(f=>{ if(f.id!==me.id) f.messages.forEach(m=>{ if(m.fromId===me.id) sent.push({...m, who:f.name, dir:'out'}); }); });
   } else {
-    document.getElementById('msg-sub').textContent = 'Messages you send from a faculty profile land here too.';
-    const mine = [];
-    FACULTY.forEach(f=> f.messages.forEach(m=>{ if(m.from===state.name) mine.push({...m, to:f.name}); }));
-    document.getElementById('msg-body').innerHTML = mine.length ? '<div class="msg-list">' + mine.slice().reverse().map((m,i)=>`
-      <div class="msg-item"><span class="msg-num">${pad2(i+1)}</span><div><div class="mi-top"><span>To ${esc(m.to)} · ${esc(m.date)}</span><span class="msg-reason">${esc(m.reason)}</span></div>
-        <div class="mi-subj">${esc(m.subject)}</div><div class="mi-body">${esc(m.body)}</div></div></div>`).join('') + '</div>' : '<div class="empty">You haven\'t contacted any faculty yet — visit a profile\'s Contact tab to send one. <button class="btn btn-ghost btn-sm" onclick="navigate(\'directory\')">Browse the directory</button></div>';
+    FACULTY.forEach(f=>{
+      f.messages.forEach(m=>{ if(sameName(m.from,state.name) && !m.fromId) sent.push({...m, who:f.name, dir:'out'}); });
+      (f.outbox||[]).forEach(m=>{ if(sameName(m.to,state.name)) inbox.push({...m, who:f.name, dir:'in', replyTo:{kind:'fac', id:f.id}}); });
+    });
   }
+  const byTime = (a,b)=> String(b.ts||'').localeCompare(String(a.ts||''));
+  inbox.sort(byTime); sent.sort(byTime);
+  return {inbox, sent};
+}
+function renderMessages(prefillId){
+  const isFaculty = state.role==='faculty', me = currentFaculty();
+  if(!msgTab) msgTab = isFaculty ? 'inbox' : 'sent';
+  document.getElementById('msg-title').textContent = 'Messages';
+  document.getElementById('msg-sub').textContent = isFaculty
+    ? 'Write to students and fellow faculty. Everything you send or receive stays here.'
+    : 'Write to any faculty member. Every message you send is kept here, with their replies.';
+  const others = FACULTY.filter(f=> !me || f.id!==me.id);
+  const opts = (isFaculty ? '<optgroup label="Fellow faculty">' : '') + others.map(f=>`<option value="${f.id}"${f.id===prefillId?' selected':''}>${esc(f.name)} — ${esc(f.dept)}</option>`).join('') + (isFaculty ? '</optgroup><optgroup label="Students"><option value="__student">A student…</option></optgroup>' : '');
+  document.getElementById('msg-body').innerHTML = `
+    <div class="msg-layout">
+      <form class="panel msg-compose" id="msg-form" autocomplete="off">
+        <h3>${isFaculty ? 'Write a message' : 'Message a faculty member'}</h3>
+        <div class="field"><label for="m-to">To</label><select id="m-to">${opts}</select></div>
+        ${isFaculty ? '<div class="field hidden" id="m-student-wrap"><label for="m-student">Student name</label><input id="m-student" placeholder="Name exactly as they sign in" maxlength="60"></div>' : ''}
+        <div class="field"><label for="m-reason">Reason</label><select id="m-reason">${MSG_REASONS.map(r=>`<option>${r}</option>`).join('')}</select></div>
+        <div class="field"><label for="m-subject">Subject</label><input id="m-subject" maxlength="120" required></div>
+        <div class="field"><label for="m-body">Message</label><textarea id="m-body" rows="5" maxlength="1500" required></textarea></div>
+        ${attPickerHTML('msg')}
+        <button class="btn btn-accent btn-split" type="submit"><span>Send message</span>${ICON.arrow}</button>
+      </form>
+      <section class="msg-history">
+        <div class="msg-tabs" role="tablist"><button type="button" role="tab" id="mt-inbox" onclick="setMsgTab('inbox')">Inbox <em id="mt-inbox-n"></em></button><button type="button" role="tab" id="mt-sent" onclick="setMsgTab('sent')">Sent <em id="mt-sent-n"></em></button></div>
+        <div id="msg-list"></div>
+      </section>
+    </div>`;
+  const to = document.getElementById('m-to');
+  const sw = document.getElementById('m-student-wrap');
+  to.onchange = ()=>{ if(sw) sw.classList.toggle('hidden', to.value!=='__student'); };
+  document.getElementById('msg-form').onsubmit = sendMessage;
+  renderMessageHistory();
+}
+function setMsgTab(t){ msgTab = t; renderMessageHistory(); }
+function renderMessageHistory(){
+  const list = document.getElementById('msg-list');
+  if(!list || !document.getElementById('mt-inbox')) return;
+  const {inbox, sent} = messageLists();
+  msgInbox = inbox;
+  document.getElementById('mt-inbox-n').textContent = inbox.length;
+  document.getElementById('mt-sent-n').textContent = sent.length;
+  document.getElementById('mt-inbox').classList.toggle('active', msgTab==='inbox');
+  document.getElementById('mt-sent').classList.toggle('active', msgTab==='sent');
+  const rows = msgTab==='inbox' ? inbox : sent;
+  const isFaculty = state.role==='faculty';
+  const empty = msgTab==='inbox'
+    ? (isFaculty ? 'Nothing in your inbox yet. Students and colleagues who write to you will show up here.' : 'No replies yet. When a faculty member writes back, it appears here.')
+    : (isFaculty ? 'You have not sent anything yet. Use the form to write to a student or colleague.' : 'You have not sent any messages yet. Pick a faculty member on the left and say hello.');
+  list.innerHTML = rows.length ? '<div class="msg-list">' + rows.map((m,i)=>`
+    <div class="msg-item"><span class="msg-num">${pad2(i+1)}</span><div>
+      <div class="mi-top"><span>${m.dir==='in' ? 'From' : 'To'} <b>${esc(m.who)}</b> · ${esc(whenOf(m))}</span><span class="msg-reason">${esc(m.reason||'')}</span></div>
+      <div class="mi-subj">${esc(m.subject)}</div><div class="mi-body">${esc(m.body)}</div>${attView(m.attach)}
+      ${m.dir==='in' ? `<button class="btn btn-ghost btn-sm mi-reply" type="button" onclick="replyToMessage(${i})">Reply</button>` : ''}
+    </div></div>`).join('') + '</div>' : `<div class="empty">${empty}</div>`;
+}
+function replyToMessage(i){
+  const m = msgInbox[i]; if(!m) return;
+  const to = document.getElementById('m-to');
+  if(m.replyTo.kind==='fac' && state.role!==undefined && [...to.options].some(o=>o.value===m.replyTo.id)) to.value = m.replyTo.id;
+  else if(m.replyTo.kind==='stu'){ to.value='__student'; document.getElementById('m-student-wrap').classList.remove('hidden'); document.getElementById('m-student').value = m.replyTo.name; }
+  document.getElementById('m-reason').value = MSG_REASONS.includes(m.reason) ? m.reason : MSG_REASONS[0];
+  document.getElementById('m-subject').value = /^re:/i.test(m.subject) ? m.subject : 'Re: '+m.subject;
+  document.getElementById('msg-form').scrollIntoView({behavior:'smooth', block:'center'});
+  document.getElementById('m-body').focus();
+}
+function sendMessage(e){
+  e.preventDefault();
+  const isFaculty = state.role==='faculty', me = currentFaculty();
+  const toVal = document.getElementById('m-to').value;
+  const reason = document.getElementById('m-reason').value;
+  const subject = document.getElementById('m-subject').value.trim();
+  const body = document.getElementById('m-body').value.trim();
+  if(!subject || !body) return;
+  const now = new Date();
+  const base = {reason, subject, body, attach:takeAtt('msg'), date:fmtWhen(now), ts:now.toISOString()};
+  let toast;
+  if(isFaculty && toVal==='__student'){
+    const name = document.getElementById('m-student').value.trim();
+    if(!name){ showToast('Enter the student\'s name first.'); document.getElementById('m-student').focus(); return; }
+    me.outbox = me.outbox || [];
+    me.outbox.push({...base, to:name, from:me.name, fromId:me.id});
+    dbSyncFaculty(me); toast = 'Sent to '+name+'.';
+  } else {
+    const target = findFaculty(toVal); if(!target) return;
+    target.messages.push(isFaculty ? {...base, from:me.name, fromId:me.id, fromRole:'faculty'} : {...base, from:state.name || 'A student', fromRole:'student'});
+    dbSyncFaculty(target); toast = 'Sent — '+target.name+' has been notified.';
+  }
+  showToast(toast);
+  document.getElementById('m-subject').value = ''; document.getElementById('m-body').value = '';
+  msgTab = 'sent';
+  updateBellBadge();
+  renderMessageHistory();
 }
 
 /* ============================ AI FACULTY MATCHMAKER ============================ */
