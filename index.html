@@ -68,6 +68,7 @@
         <button class="nav-btn" data-route="directory" onclick="navigate('directory')"><span class="nb-num">02</span>Directory</button>
         <button class="nav-btn" data-route="match" onclick="navigate('match')"><span class="nb-num">03</span>Find faculty</button>
         <button class="nav-btn" data-route="messages" onclick="navigate('messages')"><span class="nb-num">04</span>Messages</button>
+        <button class="nav-btn" data-route="study" onclick="navigate('study')"><span class="nb-num">05</span>Study</button>
       </nav>
       <div class="search-wrap">
         <svg class="ic search-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -92,6 +93,7 @@
         <button class="drawer-link" data-drawer-route="directory" onclick="toggleMenu(false);navigate('directory')"><span class="mono">02</span>Directory</button>
         <button class="drawer-link" data-drawer-route="match" onclick="toggleMenu(false);navigate('match')"><span class="mono">03</span>Find faculty</button>
         <button class="drawer-link" data-drawer-route="messages" onclick="toggleMenu(false);navigate('messages')"><span class="mono">04</span>Messages</button>
+        <button class="drawer-link" data-drawer-route="study" onclick="toggleMenu(false);navigate('study')"><span class="mono">05</span>Study agent</button>
       </div>
       <div class="drawer-foot">
         <button class="btn btn-ghost btn-block" onclick="toggleMenu(false);openPalette('')">Quick search <span class="mono">Ctrl / &#8984; K</span></button>
@@ -125,7 +127,6 @@
     <div class="announce-banner" id="announce-banner" aria-label="Campus announcements">
       <span class="ab-label"><span class="live-dot" aria-hidden="true"></span>Campus wire</span>
       <div class="ab-scroll"><div class="ab-track" id="announce-track"></div></div>
-      <button class="ab-post hidden" id="ab-post" type="button" onclick="openPostAnnouncement()" aria-label="Add announcement"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4h3l8 4V6L6 10z"/><path d="M17 9a4 4 0 010 6"/></svg>Add announcement</button>
     </div>
     <div class="stat-row" id="dash-stats"></div>
     <div class="two-col dash-cols">
@@ -169,6 +170,8 @@
     <div class="index-head index-head--small"><div><span class="kicker">Helpdesk / inbox</span><h1 class="sans-display x3d" id="msg-title">Messages</h1><p id="msg-sub"></p></div></div>
     <div id="msg-body"></div>
   </main>
+
+  <main class="view hidden" id="view-study"></main>
 
   <main class="view hidden" id="view-match">
     <section class="photo-banner photo-banner--match">
@@ -220,7 +223,9 @@
 </div>
 
 <script src="js/data.js"></script>
+<script src="js/study.js"></script>
 <script src="js/app.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/intro.js"></script>
 </body>

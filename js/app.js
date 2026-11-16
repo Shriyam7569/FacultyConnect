@@ -8,12 +8,29 @@ try{
   if(savedData){ savedData.forEach(d=>{ const f=FACULTY.find(x=>x.id===d.id); if(f){ f.uploads=d.uploads||f.uploads; f.messages=d.messages||f.messages; f.customQB=d.customQB||f.customQB||[]; f.outbox=d.outbox||f.outbox||[]; f.userAnn=d.userAnn||f.userAnn||[]; } }); }
 }catch(e){}
 FACULTY.forEach(f=> (f.uploads||[]).forEach(u=>{ if(!u.date || u.date==='just now') u.date = new Date().toISOString(); }));
-const noAtt = m => m.attach ? {...m, attach:m.attach.map(x=>({name:x.name,type:x.type,size:x.size}))} : m;
-function persistData(){
-  const snap = strip => JSON.stringify(FACULTY.map(f=>({id:f.id, uploads: strip ? f.uploads.map(u=>{ const c={...u}; delete c.fileData; return c; }) : f.uploads, messages:strip?f.messages.map(noAtt):f.messages, customQB:f.customQB||[], outbox:strip?(f.outbox||[]).map(noAtt):(f.outbox||[]), userAnn:strip?(f.userAnn||[]).map(noAtt):(f.userAnn||[])})));
-  try{ localStorage.setItem('fc_data', snap(false)); }
-  catch(e){ try{ localStorage.setItem('fc_data', snap(true)); }catch(e2){} }
+/* IndexedDB key-value store: keeps full data (uploaded files, attachments) that localStorage cannot hold */
+const IDB = (()=>{ let p; const open = ()=> p || (p = new Promise((res,rej)=>{ if(!window.indexedDB) return rej(new Error('no idb')); const r = indexedDB.open('fc_store',1); r.onupgradeneeded = ()=> r.result.createObjectStore('kv'); r.onsuccess = ()=> res(r.result); r.onerror = ()=> rej(r.error); }));
+  return {
+    set:(k,v)=> open().then(db=> new Promise((res,rej)=>{ const t = db.transaction('kv','readwrite'); t.objectStore('kv').put(v,k); t.oncomplete = res; t.onerror = ()=> rej(t.error); })),
+    get:k=> open().then(db=> new Promise((res,rej)=>{ const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = ()=> res(q.result); q.onerror = ()=> rej(q.error); }))
+  }; })();
+function applySavedData(arr){
+  (arr||[]).forEach(d=>{ const f = FACULTY.find(x=>x.id===d.id); if(f){ f.uploads=d.uploads||f.uploads; f.messages=d.messages||f.messages; f.customQB=d.customQB||f.customQB||[]; f.outbox=d.outbox||f.outbox||[]; f.userAnn=d.userAnn||f.userAnn||[]; f.annDeleted=d.annDeleted||f.annDeleted||[]; } });
 }
+const noAtt = m => m.attach ? {...m, attach:m.attach.map(x=>({name:x.name,type:x.type,size:x.size,fileId:x.fileId}))} : m;
+function persistData(){
+  const snap = strip => JSON.stringify(FACULTY.map(f=>({id:f.id, uploads: strip ? f.uploads.map(u=>{ const c={...u}; delete c.fileData; return c; }) : f.uploads, messages:strip?f.messages.map(noAtt):f.messages, customQB:f.customQB||[], annDeleted:f.annDeleted||[], outbox:strip?(f.outbox||[]).map(noAtt):(f.outbox||[]), userAnn:strip?(f.userAnn||[]).map(noAtt):(f.userAnn||[])})));
+  try{ localStorage.setItem('fc_data', snap(true)); }catch(e){}                       // quick copy for start-up (no file bodies)
+  IDB.set('fc_data_full', snap(false)).catch(()=>{                                    // full copy, files included
+    try{ localStorage.setItem('fc_data', snap(false)); }catch(e2){}
+  });
+}
+/* after start-up, load the full copy (with every uploaded file) and refresh the screen */
+IDB.get('fc_data_full').then(json=>{
+  if(!json) return;
+  try{ applySavedData(JSON.parse(json)); }catch(e){ return; }
+  if(typeof state!=='undefined' && state.loggedIn && typeof renderRoute==='function'){ try{ updateBellBadge(); renderRoute(); }catch(e){} }
+}).catch(()=>{});
 function findFaculty(id){ return FACULTY.find(f=>f.id===id); }
 
 /* ---- student progress tracker (per-device) ---- */
@@ -79,6 +96,7 @@ function onFacultyDataChanged(f){
   if(hash==='dashboard') renderDashboard();
   if(hash==='faculty/'+f.id || hash.indexOf('faculty/'+f.id+'/')===0) renderProfile(f.id, hash.split('/')[2]||'about');
   if(hash.split('/')[0]==='messages') renderMessageHistory();
+  if(hash.split('/')[0]==='study' && typeof drawStudySrc==='function') drawStudySrc();
 }
 function updateBellBadge(){
   const f = currentFaculty();
@@ -210,7 +228,7 @@ const FEED_KIND = {
 };
 /* ---- attachments (pdf / word / images) usable in announcements and messages ---- */
 const ATT = {};   // picker id -> [{name,type,size,data}]
-const ATT_MAX = 1.5 * 1024 * 1024, ATT_COUNT = 3;
+const ATT_MAX = 3 * 1024 * 1024, ATT_COUNT = 3;
 function fmtSize(n){ return n>1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(n/1024))+' KB'; }
 function attPickerHTML(pid){
   ATT[pid] = [];
@@ -238,12 +256,12 @@ function dropAtt(pid,i){ (ATT[pid]||[]).splice(i,1); drawAtt(pid); }
 function takeAtt(pid){ const l = (ATT[pid]||[]).slice(); ATT[pid]=[]; drawAtt(pid); return l; }
 function attView(list){
   if(!list || !list.length) return '';
-  return '<div class="att-view">' + list.map(f=> /^image\//.test(f.type) && f.data
-    ? `<a class="att-img" href="${f.data}" download="${esc(f.name)}" title="Download ${esc(f.name)}"><img src="${f.data}" alt="${esc(f.name)}"><span>${esc(f.name)}</span></a>`
-    : `<a class="att-file" href="${f.data||'#'}" download="${esc(f.name)}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg><b>${esc(f.name)}</b><i>${fmtSize(f.size)}</i></a>`).join('') + '</div>';
+  return '<div class="att-view">' + list.map(f=> /^image\//.test(f.type) && (f.data||f.fileId)
+    ? `<a class="att-img" href="${f.data||('/api/file?id='+f.fileId)}" download="${esc(f.name)}" title="Download ${esc(f.name)}"><img src="${f.data||('/api/file?id='+f.fileId)}" alt="${esc(f.name)}"><span>${esc(f.name)}</span></a>`
+    : `<a class="att-file" href="${f.data||(f.fileId?'/api/file?id='+f.fileId:'#')}" download="${esc(f.name)}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg><b>${esc(f.name)}</b><i>${fmtSize(f.size)}</i></a>`).join('') + '</div>';
 }
 function fmtWhen(d){ d = new Date(d); let h=d.getHours(); const ap=h>=12?'PM':'AM'; h=h%12||12; return d.getDate()+' '+MONTH_FULL[d.getMonth()].slice(0,3)+', '+h+':'+pad2(d.getMinutes())+' '+ap; }
-function whenOf(m){ return m.ts ? fmtWhen(m.ts) : (m.date||''); }
+function whenOf(m){ return (m.ts && String(m.ts).includes('T')) ? fmtWhen(m.ts) : (m.date||''); }
 function roleTitle(f){ return f.role.split(',')[0].trim(); }
 function roleFocus(f){ const p = f.role.split(','); return p.length>1 ? p.slice(1).join(',').trim() : f.dept; }
 function pad2(n){ return String(n).padStart(2,'0'); }
@@ -279,13 +297,14 @@ function renderRoute(){
 function doRenderRoute(){
   const hash = location.hash.replace('#/','') || 'dashboard';
   const parts = hash.split('/');
-  ['dashboard','directory','messages','match'].forEach(v=> document.getElementById('view-'+v).classList.add('hidden'));
+  ['dashboard','directory','messages','match','study'].forEach(v=> document.getElementById('view-'+v).classList.add('hidden'));
   document.getElementById('view-profile').classList.add('hidden');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   // only one upload composer may exist in the DOM at a time (they share element ids)
   if(parts[0]!=='faculty') document.getElementById('view-profile').innerHTML = '';
-  if(parts[0]==='faculty' || parts[0]==='messages' || parts[0]==='directory' || parts[0]==='match') document.getElementById('dash-upload-panel').innerHTML = '';
+  if(parts[0]==='faculty' || parts[0]==='messages' || parts[0]==='study' || parts[0]==='directory' || parts[0]==='match') document.getElementById('dash-upload-panel').innerHTML = '';
 
+  if(parts[0]==='study' && state.role==='faculty'){ navigate('dashboard'); return; }
   if(parts[0]==='faculty' && parts[1]){
     renderProfile(parts[1], parts[2]||'about');
     document.getElementById('view-profile').classList.remove('hidden');
@@ -293,6 +312,10 @@ function doRenderRoute(){
     renderMessages(parts[1]);
     document.getElementById('view-messages').classList.remove('hidden');
     document.querySelector('[data-route="messages"]').classList.add('active');
+  } else if(parts[0]==='study'){
+    renderStudy();
+    document.getElementById('view-study').classList.remove('hidden');
+    document.querySelector('[data-route="study"]').classList.add('active');
   } else if(parts[0]==='directory'){
     renderDirectory();
     document.getElementById('view-directory').classList.remove('hidden');
@@ -320,6 +343,7 @@ function boot(){
   document.getElementById('user-name').textContent = state.name;
   document.getElementById('user-avatar').textContent = (state.name||'?').trim().charAt(0).toUpperCase();
   document.getElementById('brand-tag').textContent = state.role==='faculty' ? ' · faculty view' : ' · student view';
+  document.querySelectorAll('[data-route="study"],[data-drawer-route="study"]').forEach(el=> el.classList.toggle('hidden', state.role==='faculty'));
   renderChatGreeting();
   if(!location.hash) location.hash = '#/dashboard';
   doRenderRoute();
@@ -333,6 +357,15 @@ function buildAnnList(){
     (f.userAnn||[]).forEach(a=> posted.push({who:f.name, id:f.id, ...a, posted:true}));
     f.announcements.forEach((a,i)=> seeded.push({who:f.name, id:f.id, title:a.text, ...a, text:'', seedText:a.text}));
   });
+  FACULTY.forEach(f=> (f.uploads||[]).forEach(u=>{
+    if(String(u.id||'').startsWith('seed-')) return;
+    const kindLabel = ({lecture:'Notes / slides', video:'Video', solutions:'Solutions', paper:'Paper', project:'Project', assignment:'Assignment'})[u.type] || 'Material';
+    const iso = u.date || new Date().toISOString();
+    posted.push({who:f.name, id:f.id, tag:u.type==='assignment'?'course':'course', title:'New '+kindLabel.toLowerCase()+': '+u.title,
+      text:[u.course?('Course '+u.course):'', u.note||'', u.due?('Due '+u.due):''].filter(Boolean).join(' · '),
+      when:u.due?('Due '+u.due):'', ts:iso, date:String(iso).includes('T')?fmtWhen(iso):fmtDay(toDate(iso)), posted:true, material:true,
+      attach:u.fileName?[{name:u.fileName, type:'', size:0, fileId:u.fileId, data:u.fileData}]:[]});
+  }));
   posted.sort((a,b)=> String(b.ts).localeCompare(String(a.ts)));
   const campus = CAMPUS_NOTICES.map(n=>({who:null, id:null, title:n.text, tag:n.tag, text:'', date:'Campus notice'}));
   ANN = [...posted, ...seeded, ...campus];
@@ -349,7 +382,6 @@ function buildAnnouncementTrack(){
   const html = items.map(i=>`<span class="ab-item ab--${FEED_KIND[i.tag]?i.tag:'note'}" role="button" tabindex="0" title="Open announcement" onclick="openAnnouncement(${i.idx})" onkeydown="if(event.key==='Enter')openAnnouncement(${i.idx})"><i class="ab-kind">${i.who ? (FEED_LABEL[i.tag]||'Notice') : 'Campus'}</i>${i.who?`<b>${esc(i.who)}</b>`:''}<span>${esc(annTitle(i))}${i.when?' · '+esc(i.when):''}</span></span>`).join('');
   const track = document.getElementById('announce-track');
   if(track) track.innerHTML = html + html;
-  const pb = document.getElementById('ab-post'); if(pb) pb.classList.toggle('hidden', state.role!=='faculty');
 }
 function openAnnouncement(idx){
   const a = ANN[idx]; if(!a) return;
@@ -364,7 +396,8 @@ function openAnnouncement(idx){
     ${a.posted?attView(a.attach):''}
     <div class="ann-meta">${a.who?`<b>${esc(a.who)}</b> · `:''}${esc(stamp)}</div>
     <div class="modal-actions">
-      ${a.id?`<button class="btn btn-accent btn-sm" onclick="closeModal();navigate('faculty/${a.id}')">View profile</button>`:''}
+      ${a.material?`<button class="btn btn-accent btn-sm" onclick="closeModal();navigate('faculty/${a.id}/work')">Open material</button>`:''}
+      ${a.id?`<button class="btn ${a.material?'btn-ghost':'btn-accent'} btn-sm" onclick="closeModal();navigate('faculty/${a.id}')">View profile</button>`:''}
       ${a.id && state.role==='student'?`<button class="btn btn-ghost btn-sm" onclick="closeModal();navigate('messages/${a.id}')">Message</button>`:''}
       <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button>
     </div>`);
@@ -401,6 +434,7 @@ function openPostAnnouncement(){
 function deleteAnnouncement(aid){
   const f = currentFaculty(); if(!f) return;
   f.userAnn = (f.userAnn||[]).filter(a=>a.aid!==aid);
+  f.annDeleted = [...(f.annDeleted||[]), aid];
   dbSyncFaculty(f);
   showToast('Announcement removed.');
   if(location.hash.replace('#/','')==='dashboard') renderDashboard();
@@ -586,7 +620,7 @@ function relDay(d){
 }
 function workItems(f){
   const items = [];
-  (f.uploads||[]).forEach((u,i)=> items.push({key:'upload:'+i, src:'upload', idx:i, id:u.id, type:WORK_TYPES[u.type]?u.type:'lecture', title:u.title, note:u.note||'', course:u.course||'', due:u.due||'', date:toDate(u.date), views:u.views||0, fileName:u.fileName||'', hasFile:!!u.fileData}));
+  (f.uploads||[]).forEach((u,i)=> items.push({key:'upload:'+i, src:'upload', idx:i, id:u.id, type:WORK_TYPES[u.type]?u.type:'lecture', title:u.title, note:u.note||'', course:u.course||'', due:u.due||'', date:toDate(u.date), views:u.views||0, fileName:u.fileName||'', hasFile:!!(u.fileData||u.fileId)}));
   (f.assignments||[]).forEach((a,i)=> items.push({key:'assignment:'+i, src:'assignment', idx:i, type:'assignment', title:a.title, note:a.desc||'', course:a.course||'', due:a.due||'', status:a.status, date:toDate(a.posted, new Date(toDate(a.due).getTime()-14*864e5))}));
   (f.lectures||[]).forEach((l,i)=> items.push({key:'lecture:'+i, src:'lecture', idx:i, type:'lecture', title:'Unit '+l.num+' — '+l.title, note:l.desc||'', date:toDate(l.posted)}));
   (f.customQB||[]).forEach((q,i)=> items.push({key:'question:'+i, src:'question', idx:i, type:'question', title:q.q, note:[q.topic,q.difficulty].filter(Boolean).join(' · '), date:toDate(q.added)}));
@@ -696,7 +730,7 @@ function wireWorkForm(f){
     };
     if(!file) return finish();
     item.fileName = file.name;
-    if(file.size > 1.5*1024*1024) return finish();
+    if(file.size > 3*1024*1024) return finish();
     const r = new FileReader();
     r.onload = ()=>{ item.fileData = r.result; finish(); };
     r.onerror = finish;
@@ -713,7 +747,7 @@ function openWorkItem(fid, src, idx){
     u.views = (u.views||0)+1; it.views = u.views;
     dbSyncFaculty(f);
     if(u.type==='video' && state.role==='student') trackProgress('videos', f.id+'-'+(u.id||idx));
-    extra = u.fileData ? `<a class="btn btn-coral btn-sm" href="${u.fileData}" download="${esc(u.fileName||'file')}" style="margin-right:8px;">Download ${esc(u.fileName||'file')}</a>`
+    extra = (u.fileData||u.fileId) ? `<a class="btn btn-coral btn-sm" href="${u.fileData||('/api/file?id='+u.fileId)}" download="${esc(u.fileName||'file')}" style="margin-right:8px;">Download ${esc(u.fileName||'file')}</a>`
       : `<p style="color:var(--ink-3);font-size:13.5px;margin:0;flex-basis:100%;">${u.fileName ? 'File: '+esc(u.fileName)+' — prototype storage keeps files only on the device they were uploaded from.' : 'This prototype doesn\'t host files — the entry, its date and its view count are what sync.'}</p>`;
   }
   if(it.type==='assignment' && state.role==='student'){
@@ -1205,11 +1239,22 @@ function renderMatchResults(matches){
 
 /* ============================ CHATBOT (floating + inline contact widget) ============================ */
 function toggleChat(open){ document.getElementById('chat-panel').classList.toggle('hidden', !open); }
+const helpKey = ()=> 'fc_help_'+(state.role||'x')+'_'+String(state.name||'').trim().toLowerCase();
+function loadHelpLog(){ try{ return JSON.parse(localStorage.getItem(helpKey())||'[]'); }catch(e){ return []; } }
+function saveHelpLog(l){ try{ localStorage.setItem(helpKey(), JSON.stringify(l.slice(-80))); }catch(e){} }
+function clearHelpLog(){ try{ localStorage.removeItem(helpKey()); }catch(e){} helpHistory = []; renderChatGreeting(); }
 function renderChatGreeting(){
   const body = document.getElementById('chat-body');
   body.innerHTML = '';
-  addChatMsgTo(body, 'bot', `Hi ${state.name ? state.name.split(' ')[0] : ''}! I can help with faculty office hours, courses, assignments, question banks, or how to reach someone. What do you need?`);
-  addChatSuggestTo(body, ['Who teaches software testing?', "Komal Bharti's office hours", 'How do I attempt the question bank?']);
+  const log = loadHelpLog();
+  if(log.length){
+    log.forEach(m=> addChatMsgTo(body, m.who, m.text));
+    helpHistory = log.slice(-8).map(m=>({role:m.who==='user'?'user':'model', text:m.text}));
+    const c = document.createElement('div'); c.className = 'chat-suggest'; c.innerHTML = '<button type="button" onclick="clearHelpLog()">Clear chat history</button>'; body.appendChild(c);
+    return;
+  }
+  addChatMsgTo(body, 'bot', `Hi ${state.name ? state.name.split(' ')[0] : ''}! Ask me anything — faculty office hours, courses, announcements, studying, or just a general question. What's on your mind?`);
+  addChatSuggestTo(body, ['Who teaches software testing?', "Komal Bharti's office hours", 'Explain recursion simply']);
 }
 function addChatMsgTo(body, who, text){
   const div = document.createElement('div');
@@ -1246,6 +1291,7 @@ async function sendChat(){
   if(!answer) answer = ruleBasedAnswer(text);
   typing.remove();
   addChatMsgTo(body, 'bot', answer);
+  const lg = loadHelpLog(); lg.push({who:'user',text}, {who:'bot',text:answer}); saveHelpLog(lg);
 }
 function renderInlineChatGreeting(f){
   const body = document.getElementById('inline-chat-body');
@@ -1273,7 +1319,23 @@ async function sendInlineChat(fid){
 function facultySummaryForBot(){
   return FACULTY.map(f=>`${f.name} (${f.role}, ${f.dept}) — office ${f.office}, hours ${f.officeHours}, email ${f.email}. Research: ${f.research.map(r=>r.name.replace('/','')).join(', ')}. Teaches: ${f.teaching.map(t=>t.code+' '+t.name).join(', ')}. Assignments: ${(f.assignments||[]).map(a=>a.title+' (due '+a.due+', '+a.status+')').join('; ') || 'none posted'}.`).join('\n');
 }
+let helpHistory = [];
+function helpSiteData(focus){
+  const ann = (typeof buildAnnList==='function' ? buildAnnList() : []).filter(x=>x.id).slice(0,10).map(x=>x.who+': '+annTitle(x)+(x.when?' ('+x.when+')':'')).join('; ');
+  const files = FACULTY.map(f=>(f.uploads||[]).map(u=>u.title+(u.course?' ['+u.course+']':'')+' by '+f.name).join('; ')).filter(Boolean).join('; ');
+  return (focus ? 'The student is on '+focus.name+"'s profile page.\n" : '') + facultySummaryForBot() + '\nRecent announcements: ' + (ann||'none') + '\nShared resources: ' + (files||'none') + '\nSite: Directory, Find faculty (AI matcher), Messages (send to any faculty), Study (AI study agent over teacher files).';
+}
+async function askAgentHelp(text, focus){
+  try{
+    const r = await fetch('/api/study', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mode:'help', question:text, text:helpSiteData(focus), title:'site', history:helpHistory})});
+    const j = await r.json();
+    if(r.ok && j && j.answer){ helpHistory.push({role:'user',text}, {role:'model',text:j.answer}); helpHistory = helpHistory.slice(-8); return j.answer; }
+  }catch(e){}
+  return null;
+}
 async function getSmartAnswer(text, focusFid){
+  const viaAgent = await askAgentHelp(text, focusFid ? findFaculty(focusFid) : null);
+  if(viaAgent) return viaAgent;
   if(!sampleCap){ try{ sampleCap = await claude.use('sample'); }catch(e){ sampleCap=null; } }
   if(!sampleCap) return null;
   const focus = focusFid ? findFaculty(focusFid) : null;
